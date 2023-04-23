@@ -5,7 +5,7 @@ COPY package*.json ./
 
 # ---- Dependencies ----
 FROM base AS dependencies
-RUN npm install
+RUN npm ci
 
 # ---- Build ----
 FROM dependencies AS build
@@ -23,7 +23,7 @@ COPY --from=build /app/next.config.js ./next.config.js
 COPY --from=build /app/next-i18next.config.js ./next-i18next.config.js
 
 # Expose the port the app will run on
-EXPOSE 80
+EXPOSE 3000
 
 # Start the application
 CMD ["npm", "start"]
