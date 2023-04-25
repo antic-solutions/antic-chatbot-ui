@@ -1,9 +1,10 @@
 version: '3.6'
 
 services:
-  chatgpt:
+  chatbot-anticsolutions:
+    container_name: chatbot-anticsolutions
     build: .
     ports:
       - 3000:3000
-    environment:
-      - 'OPENAI_API_KEY='
+    env_file:
+      - .env
