@@ -1,11 +1,14 @@
 import { OPENAI_API_TYPE } from '../utils/app/const';
 
-export interface OpenAIModel {
-  id: string;
-  name: string;
-  maxLength: number; // maximum length of a message
-  tokenLimit: number;
-}
+import * as z from 'zod';
+
+export const OpenAIModelSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  maxLength: z.number(), // max length of a message.
+  tokenLimit: z.number(),
+});
+export type OpenAIModel = z.infer<typeof OpenAIModelSchema>;
 
 export enum OpenAIModelID {
   GPT_3_5 = 'gpt-3.5-turbo',

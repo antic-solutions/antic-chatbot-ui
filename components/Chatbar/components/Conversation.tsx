@@ -14,12 +14,15 @@ import {
   useState,
 } from 'react';
 
+import useConversations from '@/hooks/useConversations';
+
 import { Conversation } from '@/types/chat';
 
 import HomeContext from '@/pages/api/home/home.context';
 
 import SidebarActionButton from '@/components/Buttons/SidebarActionButton';
 import ChatbarContext from '@/components/Chatbar/Chatbar.context';
+import { InputText } from '@/components/Input/InputText';
 
 interface Props {
   conversation: Conversation;
@@ -29,10 +32,10 @@ export const ConversationComponent = ({ conversation }: Props) => {
   const {
     state: { selectedConversation, messageIsStreaming },
     handleSelectConversation,
-    handleUpdateConversation,
   } = useContext(HomeContext);
 
   const { handleDeleteConversation } = useContext(ChatbarContext);
+  const [_, conversationsAction] = useConversations();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -56,7 +59,7 @@ export const ConversationComponent = ({ conversation }: Props) => {
 
   const handleRename = (conversation: Conversation) => {
     if (renameValue.trim().length > 0) {
-      handleUpdateConversation(conversation, {
+      conversationsAction.updateValue(conversation, {
         key: 'name',
         value: renameValue,
       });
@@ -105,7 +108,7 @@ export const ConversationComponent = ({ conversation }: Props) => {
       {isRenaming && selectedConversation?.id === conversation.id ? (
         <div className="flex w-full items-center gap-3 rounded-lg bg-[#343541]/90 p-3">
           <IconMessage size={18} />
-          <input
+          <InputText
             className="mr-12 flex-1 overflow-hidden overflow-ellipsis border-neutral-400 bg-transparent text-left text-[12.5px] leading-3 text-white outline-none focus:border-neutral-100"
             type="text"
             value={renameValue}

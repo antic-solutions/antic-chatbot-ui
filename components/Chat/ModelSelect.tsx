@@ -3,22 +3,23 @@ import { useContext } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import useConversations from '@/hooks/useConversations';
+
 import { OpenAIModel } from '@/types/openai';
 
 import HomeContext from '@/pages/api/home/home.context';
 
 export const ModelSelect = () => {
   const { t } = useTranslation('chat');
+  const [_, conversationsAction] = useConversations();
 
   const {
     state: { selectedConversation, models, defaultModelId },
-    handleUpdateConversation,
-    dispatch: homeDispatch,
   } = useContext(HomeContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     selectedConversation &&
-      handleUpdateConversation(selectedConversation, {
+      conversationsAction.updateValue(selectedConversation, {
         key: 'model',
         value: models.find(
           (model) => model.id === e.target.value,

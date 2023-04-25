@@ -1,4 +1,4 @@
-import {
+import React, {
   FC,
   KeyboardEvent,
   useCallback,
@@ -9,22 +9,24 @@ import {
 
 import { useTranslation } from 'next-i18next';
 
-import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
-
 import { Conversation } from '@/types/chat';
 import { Prompt } from '@/types/prompt';
+
+import { Textarea } from '@/components/Input/Textarea';
 
 import { PromptList } from './PromptList';
 import { VariableModal } from './VariableModal';
 
 interface Props {
   conversation: Conversation;
+  systemPrompt: string;
   prompts: Prompt[];
   onChangePrompt: (prompt: string) => void;
 }
 
 export const SystemPrompt: FC<Props> = ({
   conversation,
+  systemPrompt,
   prompts,
   onChangePrompt,
 }) => {
@@ -60,10 +62,7 @@ export const SystemPrompt: FC<Props> = ({
 
     setValue(value);
     updatePromptListVisibility(value);
-
-    if (value.length > 0) {
-      onChangePrompt(value);
-    }
+    onChangePrompt(value);
   };
 
   const handleInitModal = () => {
@@ -156,6 +155,10 @@ export const SystemPrompt: FC<Props> = ({
       } else {
         setActivePromptIndex(0);
       }
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+    } else if (e.key === '/' && e.metaKey) {
+      e.preventDefault();
     }
   };
 
@@ -165,14 +168,6 @@ export const SystemPrompt: FC<Props> = ({
       textareaRef.current.style.height = `${textareaRef.current?.scrollHeight}px`;
     }
   }, [value]);
-
-  useEffect(() => {
-    if (conversation.prompt) {
-      setValue(conversation.prompt);
-    } else {
-      setValue(DEFAULT_SYSTEM_PROMPT);
-    }
-  }, [conversation]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -196,8 +191,8 @@ export const SystemPrompt: FC<Props> = ({
       <label className="mb-2 text-left text-neutral-700 dark:text-neutral-400">
         {t('System Prompt')}
       </label>
-      <textarea
-        ref={textareaRef}
+      <Textarea
+        textareaRef={textareaRef}
         className="w-full rounded-lg border border-neutral-200 bg-transparent px-4 py-3 text-neutral-900 dark:border-neutral-600 dark:text-neutral-100"
         style={{
           resize: 'none',
@@ -212,8 +207,8 @@ export const SystemPrompt: FC<Props> = ({
         placeholder={
           t(`Enter a prompt or type "/" to select a prompt...`) || ''
         }
-        value={t(value) || ''}
-        rows={1}
+        value={systemPrompt}
+        rows={3}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
       />

@@ -1,19 +1,35 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 import { OPENAI_API_HOST } from '@/utils/app/const';
-import { cleanSourceText } from '@/utils/server/google';
+import { ensureHasValidSession } from '@/utils/server/auth';
+import { getTiktokenEncoding } from '@/utils/server/tiktoken';
+import { cleanSourceText } from '@/utils/server/webpage';
 
 import { Message } from '@/types/chat';
 import { GoogleBody, GoogleSource } from '@/types/google';
 
+import { Tiktoken } from '@dqbd/tiktoken/lite/init';
 import { Readability } from '@mozilla/readability';
 import endent from 'endent';
 import jsdom, { JSDOM } from 'jsdom';
+import path from 'node:path';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
+  // Vercel Hack
+  // https://github.com/orgs/vercel/discussions/1278
+  // eslint-disable-next-line no-unused-vars
+  const vercelFunctionHack = path.resolve('./public', '');
+
+  if (!(await ensureHasValidSession(req, res))) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  let encoding: Tiktoken | null = null;
   try {
     const { messages, key, model, googleAPIKey, googleCSEId } =
       req.body as GoogleBody;
+
+    encoding = await getTiktokenEncoding(model.id);
 
     const userMessage = messages[messages.length - 1];
     const query = encodeURIComponent(userMessage.content.trim());
@@ -37,6 +53,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
       text: '',
     }));
 
+    const textDecoder = new TextDecoder();
     const sourcesWithText: any = await Promise.all(
       sources.map(async (source) => {
         try {
@@ -66,10 +83,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
           if (parsed) {
             let sourceText = cleanSourceText(parsed.textContent);
 
+            // 400 tokens per source
+            let encodedText = encoding!.encode(sourceText);
+            if (encodedText.length > 400) {
+              encodedText = encodedText.slice(0, 400);
+            }
             return {
               ...source,
-              // TODO: switch to tokens
-              text: sourceText.slice(0, 2000),
+              text: textDecoder.decode(encoding!.decode(encodedText)),
             } as GoogleSource;
           }
           // }
@@ -83,6 +104,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     );
 
     const filteredSources: GoogleSource[] = sourcesWithText.filter(Boolean);
+    let sourceTexts: string[] = [];
+    let tokenSizeTotal = 0;
+    for (const source of filteredSources) {
+      const text = endent`
+      ${source.title} (${source.link}):
+      ${source.text}
+      `;
+      const tokenSize = encoding.encode(text).length;
+      if (tokenSizeTotal + tokenSize > 2000) {
+        break;
+      }
+      sourceTexts.push(text);
+      tokenSizeTotal += tokenSize;
+    }
 
     const answerPrompt = endent`
     Provide me with the information I requested. Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as a markdown link as you use them at the end of each sentence by number of the source (ex: [[1]](link.com)). Provide an accurate response and then stop. Today's date is ${new Date().toLocaleDateString()}.
@@ -100,12 +135,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     ${userMessage.content.trim()}
 
     Sources:
-    ${filteredSources.map((source) => {
-      return endent`
-      ${source.title} (${source.link}):
-      ${source.text}
-      `;
-    })}
+    ${sourceTexts}
 
     Response:
     `;
@@ -142,7 +172,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     res.status(200).json({ answer });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error'})
+    res.status(500).json({ error: 'Error' });
+  } finally {
+    if (encoding !== null) {
+      encoding.free();
+    }
   }
 };
 

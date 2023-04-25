@@ -1,4 +1,5 @@
-import { Conversation } from '@/types/chat';
+import { StorageService } from '@/services/useStorageService';
+
 import {
   ExportFormatV1,
   ExportFormatV2,
@@ -7,9 +8,10 @@ import {
   LatestExportFormat,
   SupportedExportFormats,
 } from '@/types/export';
-import { FolderInterface } from '@/types/folder';
 import { Prompt } from '@/types/prompt';
+import { Settings } from '@/types/settings';
 
+import { trpc } from '../trpc';
 import { cleanConversationHistory } from './clean';
 
 export function isExportFormatV1(obj: any): obj is ExportFormatV1 {
@@ -29,12 +31,18 @@ export function isExportFormatV4(obj: any): obj is ExportFormatV4 {
 }
 
 export const isLatestExportFormat = isExportFormatV4;
+export interface CleaningFallback {
+  temperature: number;
+}
 
-export function cleanData(data: SupportedExportFormats): LatestExportFormat {
+export function cleanData(
+  data: SupportedExportFormats,
+  fallback: CleaningFallback,
+): LatestExportFormat {
   if (isExportFormatV1(data)) {
     return {
       version: 4,
-      history: cleanConversationHistory(data),
+      history: cleanConversationHistory(data, fallback),
       folders: [],
       prompts: [],
     };
@@ -43,7 +51,7 @@ export function cleanData(data: SupportedExportFormats): LatestExportFormat {
   if (isExportFormatV2(data)) {
     return {
       version: 4,
-      history: cleanConversationHistory(data.history || []),
+      history: cleanConversationHistory(data.history || [], fallback),
       folders: (data.folders || []).map((chatFolder) => ({
         id: chatFolder.id.toString(),
         name: chatFolder.name,
@@ -71,22 +79,12 @@ function currentDate() {
   return `${month}-${day}`;
 }
 
-export const exportData = () => {
-  let history = localStorage.getItem('conversationHistory');
-  let folders = localStorage.getItem('folders');
-  let prompts = localStorage.getItem('prompts');
-
-  if (history) {
-    history = JSON.parse(history);
-  }
-
-  if (folders) {
-    folders = JSON.parse(folders);
-  }
-
-  if (prompts) {
-    prompts = JSON.parse(prompts);
-  }
+export const exportData = async (
+  storageService: StorageService,
+  prompts: Prompt[],
+) => {
+  const history = await storageService.getConversations();
+  const folders = await storageService.getFolders();
 
   const data = {
     version: 4,
@@ -107,58 +105,4 @@ export const exportData = () => {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-};
-
-export const importData = (
-  data: SupportedExportFormats,
-): LatestExportFormat => {
-  const { history, folders, prompts } = cleanData(data);
-
-  const oldConversations = localStorage.getItem('conversationHistory');
-  const oldConversationsParsed = oldConversations
-    ? JSON.parse(oldConversations)
-    : [];
-
-  const newHistory: Conversation[] = [
-    ...oldConversationsParsed,
-    ...history,
-  ].filter(
-    (conversation, index, self) =>
-      index === self.findIndex((c) => c.id === conversation.id),
-  );
-  localStorage.setItem('conversationHistory', JSON.stringify(newHistory));
-  if (newHistory.length > 0) {
-    localStorage.setItem(
-      'selectedConversation',
-      JSON.stringify(newHistory[newHistory.length - 1]),
-    );
-  } else {
-    localStorage.removeItem('selectedConversation');
-  }
-
-  const oldFolders = localStorage.getItem('folders');
-  const oldFoldersParsed = oldFolders ? JSON.parse(oldFolders) : [];
-  const newFolders: FolderInterface[] = [
-    ...oldFoldersParsed,
-    ...folders,
-  ].filter(
-    (folder, index, self) =>
-      index === self.findIndex((f) => f.id === folder.id),
-  );
-  localStorage.setItem('folders', JSON.stringify(newFolders));
-
-  const oldPrompts = localStorage.getItem('prompts');
-  const oldPromptsParsed = oldPrompts ? JSON.parse(oldPrompts) : [];
-  const newPrompts: Prompt[] = [...oldPromptsParsed, ...prompts].filter(
-    (prompt, index, self) =>
-      index === self.findIndex((p) => p.id === prompt.id),
-  );
-  localStorage.setItem('prompts', JSON.stringify(newPrompts));
-
-  return {
-    version: 4,
-    history: newHistory,
-    folders: newFolders,
-    prompts: newPrompts,
-  };
 };

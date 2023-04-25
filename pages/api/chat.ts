@@ -1,67 +1,83 @@
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
-import { OpenAIError, OpenAIStream } from '@/utils/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-import { ChatBody, Message } from '@/types/chat';
+import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
+import { OpenAIStream } from '@/utils/server';
+import { ensureHasValidSession } from '@/utils/server/auth';
+import { createMessagesToSend } from '@/utils/server/message';
+import { getTiktokenEncoding } from '@/utils/server/tiktoken';
 
-// @ts-expect-error
-import wasm from '../../node_modules/@dqbd/tiktoken/lite/tiktoken_bg.wasm?module';
+import { ChatBodySchema } from '@/types/chat';
 
-import tiktokenModel from '@dqbd/tiktoken/encoders/cl100k_base.json';
-import { Tiktoken, init } from '@dqbd/tiktoken/lite/init';
+import path from 'node:path';
 
-export const config = {
-  runtime: 'edge',
-};
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  // Vercel Hack
+  // https://github.com/orgs/vercel/discussions/1278
+  // eslint-disable-next-line no-unused-vars
+  const vercelFunctionHack = path.resolve('./public', '');
 
-const handler = async (req: Request): Promise<Response> => {
+  if (!(await ensureHasValidSession(req, res))) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { model, messages, key, prompt, temperature } = ChatBodySchema.parse(
+    req.body,
+  );
+  const encoding = await getTiktokenEncoding(model.id);
   try {
-    const { model, messages, key, prompt, temperature } = (await req.json()) as ChatBody;
-
-    await init((imports) => WebAssembly.instantiate(wasm, imports));
-    const encoding = new Tiktoken(
-      tiktokenModel.bpe_ranks,
-      tiktokenModel.special_tokens,
-      tiktokenModel.pat_str,
+    let systemPromptToSend = prompt;
+    if (!systemPromptToSend) {
+      systemPromptToSend = DEFAULT_SYSTEM_PROMPT;
+    }
+    let { messages: messagesToSend, maxToken } = createMessagesToSend(
+      encoding,
+      model,
+      systemPromptToSend,
+      1000,
+      messages,
     );
-
-    let promptToSend = prompt;
-    if (!promptToSend) {
-      promptToSend = DEFAULT_SYSTEM_PROMPT;
+    if (messagesToSend.length === 0) {
+      throw new Error('message is too long');
     }
-
-    let temperatureToUse = temperature;
-    if (temperatureToUse == null) {
-      temperatureToUse = DEFAULT_TEMPERATURE;
+    const stream = await OpenAIStream(
+      model,
+      systemPromptToSend,
+      temperature,
+      key,
+      messagesToSend,
+      maxToken,
+    );
+    res.status(200);
+    res.writeHead(200, {
+      Connection: 'keep-alive',
+      'Content-Encoding': 'none',
+      'Transfer-Encoding': 'chunked',
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream',
+    });
+    const decoder = new TextDecoder();
+    const reader = stream.getReader();
+    let closed = false;
+    while (!closed) {
+      await reader.read().then(({ done, value }) => {
+        if (done) {
+          closed = true;
+          res.end();
+        } else {
+          const text = decoder.decode(value);
+          res.write(text);
+        }
+      });
     }
-
-    const prompt_tokens = encoding.encode(promptToSend);
-
-    let tokenCount = prompt_tokens.length;
-    let messagesToSend: Message[] = [];
-
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      const tokens = encoding.encode(message.content);
-
-      if (tokenCount + tokens.length + 1000 > model.tokenLimit) {
-        break;
-      }
-      tokenCount += tokens.length;
-      messagesToSend = [message, ...messagesToSend];
-    }
-
-    encoding.free();
-
-    const stream = await OpenAIStream(model, promptToSend, temperatureToUse, key, messagesToSend);
-
-    return new Response(stream);
   } catch (error) {
     console.error(error);
-    if (error instanceof OpenAIError) {
-      return new Response('Error', { status: 500, statusText: error.message });
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
     } else {
-      return new Response('Error', { status: 500 });
+      res.status(500).json({ error: 'Error' });
     }
+  } finally {
+    encoding.free();
   }
 };
 

@@ -2,17 +2,17 @@ import { FC, useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { Plugin, PluginList } from '@/types/plugin';
+import { ChatMode, ChatModeList } from '@/types/chatmode';
 
 interface Props {
-  plugin: Plugin | null;
-  onPluginChange: (plugin: Plugin) => void;
+  chatMode: ChatMode;
+  onChatModeChange: (chatMode: ChatMode) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLSelectElement>) => void;
 }
 
-export const PluginSelect: FC<Props> = ({
-  plugin,
-  onPluginChange,
+export const ChatModeSelect: FC<Props> = ({
+  chatMode,
+  onChatModeChange,
   onKeyDown,
 }) => {
   const { t } = useTranslation('chat');
@@ -43,11 +43,11 @@ export const PluginSelect: FC<Props> = ({
         selectElement.dispatchEvent(new Event('change'));
       }
 
-      onPluginChange(
-        PluginList.find(
+      onChatModeChange(
+        ChatModeList.find(
           (plugin) =>
             plugin.name === selectElement?.selectedOptions[0].innerText,
-        ) as Plugin,
+        ) as ChatMode,
       );
     } else {
       onKeyDown(e);
@@ -67,27 +67,26 @@ export const PluginSelect: FC<Props> = ({
           ref={selectRef}
           className="w-full cursor-pointer bg-transparent p-2"
           placeholder={t('Select a plugin') || ''}
-          value={plugin?.id || ''}
-          onChange={(e) => {
-            onPluginChange(
-              PluginList.find(
+          value={chatMode?.id || ''}
+          onBlur={(e) => {
+            onChatModeChange(
+              ChatModeList.find(
                 (plugin) => plugin.id === e.target.value,
-              ) as Plugin,
+              ) as ChatMode,
+            );
+          }}
+          onChange={(e) => {
+            onChatModeChange(
+              ChatModeList.find(
+                (plugin) => plugin.id === e.target.value,
+              ) as ChatMode,
             );
           }}
           onKeyDown={(e) => {
             handleKeyDown(e);
           }}
         >
-          <option
-            key="chatgpt"
-            value="chatgpt"
-            className="dark:bg-[#343541] dark:text-white"
-          >
-            ChatGPT
-          </option>
-
-          {PluginList.map((plugin) => (
+          {ChatModeList.map((plugin) => (
             <option
               key={plugin.id}
               value={plugin.id}

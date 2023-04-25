@@ -8,6 +8,7 @@ import type { AppProps } from 'next/app';
 import { Inter } from 'next/font/google';
 
 import '@/styles/globals.css';
+import { trpc } from '../utils/trpc';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,4 +27,4 @@ function App({ Component, pageProps }: AppProps<{ session: Session }>) {
   );
 }
 
-export default appWithTranslation(App);
+export default trpc.withTRPC(appWithTranslation(App));

@@ -2,6 +2,8 @@ import { IconFolderPlus, IconMistOff, IconPlus } from '@tabler/icons-react';
 import { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { FolderInterface } from '@/types/folder';
+
 import {
   CloseSidebarButton,
   OpenSidebarButton,
@@ -78,18 +80,18 @@ const Sidebar = <T,>({
             <IconFolderPlus size={16} />
           </button>
         </div>
-        <Search
-          placeholder={t('Search...') || ''}
-          searchTerm={searchTerm}
-          onSearch={handleSearchTerm}
-        />
+        {(items?.length > 0 || searchTerm) && (
+          <Search
+            placeholder={t('Search prompts...') || ''}
+            searchTerm={searchTerm}
+            onSearch={handleSearchTerm}
+          />
+        )}
 
         <div className="flex-grow overflow-auto">
-          {items?.length > 0 && (
-            <div className="flex border-b border-white/20 pb-2">
-              {folderComponent}
-            </div>
-          )}
+          <div className="flex border-b border-white/20 pb-2">
+            {folderComponent}
+          </div>
 
           {items?.length > 0 ? (
             <div
@@ -105,7 +107,7 @@ const Sidebar = <T,>({
             <div className="mt-8 select-none text-center text-white opacity-50">
               <IconMistOff className="mx-auto mb-3" />
               <span className="text-[14px] leading-normal">
-                {t('No data.')}
+                {t('No prompts.')}
               </span>
             </div>
           )}

@@ -10,7 +10,9 @@ import { FC, memo, useContext, useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { updateConversation } from '@/utils/app/conversation';
+import useConversations from '@/hooks/useConversations';
+
+import useStorageService from '@/services/useStorageService';
 
 import { Message } from '@/types/chat';
 
@@ -26,14 +28,15 @@ import remarkMath from 'remark-math';
 export interface Props {
   message: Message;
   messageIndex: number;
-  onEdit?: (editedMessage: Message) => void
 }
 
-export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) => {
+export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
   const { t } = useTranslation('chat');
+  const storageService = useStorageService();
+  const [_, conversationsAction] = useConversations();
 
   const {
-    state: { selectedConversation, conversations, currentMessage, messageIsStreaming },
+    state: { selectedConversation, conversations },
     dispatch: homeDispatch,
   } = useContext(HomeContext);
 
@@ -56,16 +59,38 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
     }
   };
 
-  const handleEditMessage = () => {
+  const handleEditMessage = async () => {
     if (message.content != messageContent) {
-      if (selectedConversation && onEdit) {
-        onEdit({ ...message, content: messageContent });
+      if (selectedConversation) {
+        const updatedMessages = selectedConversation.messages
+          .map((m, i) => {
+            if (i < messageIndex) {
+              return m;
+            }
+          })
+          .filter((m) => m) as Message[];
+
+        const updatedConversation = {
+          ...selectedConversation,
+          messages: updatedMessages,
+        };
+
+        await conversationsAction.update(updatedConversation);
+        await storageService.saveSelectedConversation(updatedConversation);
+        homeDispatch({
+          field: 'selectedConversation',
+          value: updatedConversation,
+        });
+        homeDispatch({
+          field: 'currentMessage',
+          value: { ...message, content: messageContent },
+        });
       }
     }
     setIsEditing(false);
   };
 
-  const handleDeleteMessage = () => {
+  const handleDeleteMessage = async () => {
     if (!selectedConversation) return;
 
     const { messages } = selectedConversation;
@@ -86,12 +111,9 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
       messages,
     };
 
-    const { single, all } = updateConversation(
-      updatedConversation,
-      conversations,
-    );
-    homeDispatch({ field: 'selectedConversation', value: single });
-    homeDispatch({ field: 'conversations', value: all });
+    await conversationsAction.update(updatedConversation);
+    await storageService.saveSelectedConversation(updatedConversation);
+    homeDispatch({ field: 'selectedConversation', value: updatedConversation });
   };
 
   const handlePressEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -115,7 +137,6 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
   useEffect(() => {
     setMessageContent(message.content);
   }, [message.content]);
-
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -215,14 +236,6 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                 rehypePlugins={[rehypeMathjax]}
                 components={{
                   code({ node, inline, className, children, ...props }) {
-                    if (children.length) {
-                      if (children[0] == '▍') {
-                        return <span className="animate-pulse cursor-default mt-1">▍</span>
-                      }
-
-                      children[0] = (children[0] as string).replace("`▍`", "▍")
-                    }
-
                     const match = /language-(\w+)/.exec(className || '');
 
                     return !inline ? (
@@ -261,9 +274,7 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex, onEdit }) =
                   },
                 }}
               >
-                {`${message.content}${
-                  messageIsStreaming && messageIndex == (selectedConversation?.messages.length ?? 0) - 1 ? '`▍`' : ''
-                }`}
+                {message.content}
               </MemoizedReactMarkdown>
 
               <div className="md:-mr-8 ml-1 md:ml-0 flex flex-col md:flex-row gap-4 md:gap-1 items-center md:items-start justify-end md:justify-start">

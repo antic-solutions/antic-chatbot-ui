@@ -120,6 +120,7 @@ export const PromptComponent = ({ prompt }: Props) => {
 
       {showModal && (
         <PromptModal
+          open={showModal}
           prompt={prompt}
           onClose={() => setShowModal(false)}
           onUpdatePrompt={handleUpdate}

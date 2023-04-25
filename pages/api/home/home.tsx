@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from 'react-query';
 
 import { GetServerSideProps } from 'next';
@@ -10,31 +10,19 @@ import { useCreateReducer } from '@/hooks/useCreateReducer';
 
 import useErrorService from '@/services/errorService';
 import useApiService from '@/services/useApiService';
+import useStorageService from '@/services/useStorageService';
 
 import {
   cleanConversationHistory,
   cleanSelectedConversation,
 } from '@/utils/app/clean';
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
-import {
-  saveConversation,
-  saveConversations,
-  updateConversation,
-} from '@/utils/app/conversation';
-import { saveFolders } from '@/utils/app/folders';
-import { savePrompts } from '@/utils/app/prompts';
-import { getSettings } from '@/utils/app/settings';
+import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
+import { trpc } from '@/utils/trpc';
 
 import { Conversation } from '@/types/chat';
-import { KeyValuePair } from '@/types/data';
-import { FolderInterface, FolderType } from '@/types/folder';
 import { OpenAIModelID, OpenAIModels, fallbackModelID } from '@/types/openai';
-import { Prompt } from '@/types/prompt';
 
-import { Chat } from '@/components/Chat/Chat';
-import { Chatbar } from '@/components/Chatbar/Chatbar';
-import { Navbar } from '@/components/Mobile/Navbar';
-import Promptbar from '@/components/Promptbar';
+import { HomeMain } from '@/components/Home/HomeMain';
 
 import HomeContext from './home.context';
 import { HomeInitialState, initialState } from './home.state';
@@ -54,29 +42,21 @@ const Home = ({
 }: Props) => {
   const { t } = useTranslation('chat');
   const { getModels } = useApiService();
+  const storageService = useStorageService();
   const { getModelsError } = useErrorService();
-  const [initialRender, setInitialRender] = useState<boolean>(true);
+  const settingsQuery = trpc.settings.get.useQuery();
+  const promptsQuery = trpc.prompts.list.useQuery();
 
   const contextValue = useCreateReducer<HomeInitialState>({
     initialState,
   });
 
   const {
-    state: {
-      apiKey,
-      lightMode,
-      folders,
-      conversations,
-      selectedConversation,
-      prompts,
-      temperature,
-    },
+    state: { apiKey, settings, conversations, selectedConversation, prompts },
     dispatch,
   } = contextValue;
 
-  const stopConversationRef = useRef<boolean>(false);
-
-  const { data, error, refetch } = useQuery(
+  const { data, error } = useQuery(
     ['GetModels', apiKey, serverSideApiKeyIsSet],
     ({ signal }) => {
       if (!apiKey && !serverSideApiKeyIsSet) return null;
@@ -88,7 +68,7 @@ const Home = ({
         signal,
       );
     },
-    { enabled: true, refetchOnMount: false },
+    { enabled: true, refetchOnWindowFocus: false, refetchOnMount: false },
   );
 
   useEffect(() => {
@@ -101,128 +81,12 @@ const Home = ({
 
   // FETCH MODELS ----------------------------------------------
 
-  const handleSelectConversation = (conversation: Conversation) => {
+  const handleSelectConversation = async (conversation: Conversation) => {
+    await storageService.saveSelectedConversation(conversation);
     dispatch({
       field: 'selectedConversation',
       value: conversation,
     });
-
-    saveConversation(conversation);
-  };
-
-  // FOLDER OPERATIONS  --------------------------------------------
-
-  const handleCreateFolder = (name: string, type: FolderType) => {
-    const newFolder: FolderInterface = {
-      id: uuidv4(),
-      name,
-      type,
-    };
-
-    const updatedFolders = [...folders, newFolder];
-
-    dispatch({ field: 'folders', value: updatedFolders });
-    saveFolders(updatedFolders);
-  };
-
-  const handleDeleteFolder = (folderId: string) => {
-    const updatedFolders = folders.filter((f) => f.id !== folderId);
-    dispatch({ field: 'folders', value: updatedFolders });
-    saveFolders(updatedFolders);
-
-    const updatedConversations: Conversation[] = conversations.map((c) => {
-      if (c.folderId === folderId) {
-        return {
-          ...c,
-          folderId: null,
-        };
-      }
-
-      return c;
-    });
-
-    dispatch({ field: 'conversations', value: updatedConversations });
-    saveConversations(updatedConversations);
-
-    const updatedPrompts: Prompt[] = prompts.map((p) => {
-      if (p.folderId === folderId) {
-        return {
-          ...p,
-          folderId: null,
-        };
-      }
-
-      return p;
-    });
-
-    dispatch({ field: 'prompts', value: updatedPrompts });
-    savePrompts(updatedPrompts);
-  };
-
-  const handleUpdateFolder = (folderId: string, name: string) => {
-    const updatedFolders = folders.map((f) => {
-      if (f.id === folderId) {
-        return {
-          ...f,
-          name,
-        };
-      }
-
-      return f;
-    });
-
-    dispatch({ field: 'folders', value: updatedFolders });
-
-    saveFolders(updatedFolders);
-  };
-
-  // CONVERSATION OPERATIONS  --------------------------------------------
-
-  const handleNewConversation = () => {
-    const lastConversation = conversations[conversations.length - 1];
-
-    const newConversation: Conversation = {
-      id: uuidv4(),
-      name: t('New Conversation'),
-      messages: [],
-      model: lastConversation?.model || {
-        id: OpenAIModels[defaultModelId].id,
-        name: OpenAIModels[defaultModelId].name,
-        maxLength: OpenAIModels[defaultModelId].maxLength,
-        tokenLimit: OpenAIModels[defaultModelId].tokenLimit,
-      },
-      prompt: DEFAULT_SYSTEM_PROMPT,
-      temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
-      folderId: null,
-    };
-
-    const updatedConversations = [...conversations, newConversation];
-
-    dispatch({ field: 'selectedConversation', value: newConversation });
-    dispatch({ field: 'conversations', value: updatedConversations });
-
-    saveConversation(newConversation);
-    saveConversations(updatedConversations);
-
-    dispatch({ field: 'loading', value: false });
-  };
-
-  const handleUpdateConversation = (
-    conversation: Conversation,
-    data: KeyValuePair,
-  ) => {
-    const updatedConversation = {
-      ...conversation,
-      [data.key]: data.value,
-    };
-
-    const { single, all } = updateConversation(
-      updatedConversation,
-      conversations,
-    );
-
-    dispatch({ field: 'selectedConversation', value: single });
-    dispatch({ field: 'conversations', value: all });
   };
 
   // EFFECTS  --------------------------------------------
@@ -251,14 +115,21 @@ const Home = ({
   // ON LOAD --------------------------------------------
 
   useEffect(() => {
-    const settings = getSettings();
-    if (settings.theme) {
+    if (settingsQuery.data) {
       dispatch({
-        field: 'lightMode',
-        value: settings.theme,
+        field: 'settings',
+        value: settingsQuery.data,
       });
     }
+  }, [dispatch, settingsQuery.data]);
 
+  useEffect(() => {
+    if (promptsQuery.data) {
+      dispatch({ field: 'prompts', value: promptsQuery.data });
+    }
+  }, [dispatch, promptsQuery.data]);
+
+  useEffect(() => {
     const apiKey = localStorage.getItem('apiKey');
 
     if (serverSideApiKeyIsSet) {
@@ -269,12 +140,12 @@ const Home = ({
       dispatch({ field: 'apiKey', value: apiKey });
     }
 
-    const pluginKeys = localStorage.getItem('pluginKeys');
+    const chatModeKeys = localStorage.getItem('chatModeKeys');
     if (serverSidePluginKeysSet) {
-      dispatch({ field: 'pluginKeys', value: [] });
-      localStorage.removeItem('pluginKeys');
-    } else if (pluginKeys) {
-      dispatch({ field: 'pluginKeys', value: pluginKeys });
+      dispatch({ field: 'chatModeKeys', value: [] });
+      localStorage.removeItem('chatModeKeys');
+    } else if (chatModeKeys) {
+      dispatch({ field: 'chatModeKeys', value: chatModeKeys });
     }
 
     if (window.innerWidth < 640) {
@@ -292,32 +163,24 @@ const Home = ({
       dispatch({ field: 'showPromptbar', value: showPromptbar === 'true' });
     }
 
-    const folders = localStorage.getItem('folders');
-    if (folders) {
-      dispatch({ field: 'folders', value: JSON.parse(folders) });
-    }
+    storageService.getFolders().then((folders) => {
+      dispatch({ field: 'folders', value: folders });
+    });
 
-    const prompts = localStorage.getItem('prompts');
-    if (prompts) {
-      dispatch({ field: 'prompts', value: JSON.parse(prompts) });
-    }
-
-    const conversationHistory = localStorage.getItem('conversationHistory');
-    if (conversationHistory) {
-      const parsedConversationHistory: Conversation[] =
-        JSON.parse(conversationHistory);
+    storageService.getConversations().then((conversations) => {
       const cleanedConversationHistory = cleanConversationHistory(
-        parsedConversationHistory,
+        conversations,
+        { temperature: settings.defaultTemperature },
       );
-
       dispatch({ field: 'conversations', value: cleanedConversationHistory });
-    }
+    });
 
     const selectedConversation = localStorage.getItem('selectedConversation');
     if (selectedConversation) {
       const parsedSelectedConversation: Conversation =
         JSON.parse(selectedConversation);
       const cleanedSelectedConversation = cleanSelectedConversation(
+        settings,
         parsedSelectedConversation,
       );
 
@@ -326,7 +189,6 @@ const Home = ({
         value: cleanedSelectedConversation,
       });
     } else {
-      const lastConversation = conversations[conversations.length - 1];
       dispatch({
         field: 'selectedConversation',
         value: {
@@ -335,7 +197,7 @@ const Home = ({
           messages: [],
           model: OpenAIModels[defaultModelId],
           prompt: DEFAULT_SYSTEM_PROMPT,
-          temperature: lastConversation?.temperature ?? DEFAULT_TEMPERATURE,
+          temperature: settings.defaultTemperature,
           folderId: null,
         },
       });
@@ -351,12 +213,7 @@ const Home = ({
     <HomeContext.Provider
       value={{
         ...contextValue,
-        handleNewConversation,
-        handleCreateFolder,
-        handleDeleteFolder,
-        handleUpdateFolder,
         handleSelectConversation,
-        handleUpdateConversation,
       }}
     >
       <Head>
@@ -369,26 +226,7 @@ const Home = ({
         <link rel="icon" href="/favicon.ico" />
       </Head>
       {selectedConversation && (
-        <main
-          className={`flex h-screen w-screen flex-col text-sm text-white dark:text-white ${lightMode}`}
-        >
-          <div className="fixed top-0 w-full sm:hidden">
-            <Navbar
-              selectedConversation={selectedConversation}
-              onNewConversation={handleNewConversation}
-            />
-          </div>
-
-          <div className="flex h-full w-full pt-[48px] sm:pt-0">
-            <Chatbar />
-
-            <div className="flex flex-1">
-              <Chat stopConversationRef={stopConversationRef} />
-            </div>
-
-            <Promptbar />
-          </div>
-        </main>
+        <HomeMain selectedConversation={selectedConversation} />
       )}
     </HomeContext.Provider>
   );

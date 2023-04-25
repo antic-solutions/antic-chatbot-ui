@@ -2,17 +2,20 @@ import { useCallback, useContext, useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import useConversations from '@/hooks/useConversations';
 import { useCreateReducer } from '@/hooks/useCreateReducer';
+import { useExporter } from '@/hooks/useExporter';
+import useFolders from '@/hooks/useFolders';
+import { useImporter } from '@/hooks/useImporter';
 
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_TEMPERATURE } from '@/utils/app/const';
-import { saveConversation, saveConversations } from '@/utils/app/conversation';
-import { saveFolders } from '@/utils/app/folders';
-import { exportData, importData } from '@/utils/app/importExport';
+import useStorageService from '@/services/useStorageService';
+
+import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 
 import { Conversation } from '@/types/chat';
+import { ChatModeKey } from '@/types/chatmode';
 import { LatestExportFormat, SupportedExportFormats } from '@/types/export';
 import { OpenAIModels } from '@/types/openai';
-import { PluginKey } from '@/types/plugin';
 
 import HomeContext from '@/pages/api/home/home.context';
 
@@ -28,18 +31,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const Chatbar = () => {
   const { t } = useTranslation('sidebar');
+  const { t: tChat } = useTranslation('chat');
+  const storageService = useStorageService();
+  const [folders, foldersAction] = useFolders();
+  const exporter = useExporter();
+  const importer = useImporter();
 
   const chatBarContextValue = useCreateReducer<ChatbarInitialState>({
     initialState,
   });
 
   const {
-    state: { conversations, showChatbar, defaultModelId, folders, pluginKeys },
+    state: { showChatbar, defaultModelId, chatModeKeys: pluginKeys, settings },
     dispatch: homeDispatch,
-    handleCreateFolder,
-    handleNewConversation,
-    handleUpdateConversation,
   } = useContext(HomeContext);
+  const [conversations, conversationsAction] = useConversations();
 
   const {
     state: { searchTerm, filteredConversations },
@@ -55,51 +61,55 @@ export const Chatbar = () => {
     [homeDispatch],
   );
 
-  const handlePluginKeyChange = (pluginKey: PluginKey) => {
-    if (pluginKeys.some((key) => key.pluginId === pluginKey.pluginId)) {
+  const handlePluginKeyChange = (pluginKey: ChatModeKey) => {
+    if (pluginKeys.some((key) => key.chatModeId === pluginKey.chatModeId)) {
       const updatedPluginKeys = pluginKeys.map((key) => {
-        if (key.pluginId === pluginKey.pluginId) {
+        if (key.chatModeId === pluginKey.chatModeId) {
           return pluginKey;
         }
 
         return key;
       });
 
-      homeDispatch({ field: 'pluginKeys', value: updatedPluginKeys });
+      homeDispatch({ field: 'chatModeKeys', value: updatedPluginKeys });
 
-      localStorage.setItem('pluginKeys', JSON.stringify(updatedPluginKeys));
+      localStorage.setItem('chatModeKeys', JSON.stringify(updatedPluginKeys));
     } else {
-      homeDispatch({ field: 'pluginKeys', value: [...pluginKeys, pluginKey] });
+      homeDispatch({
+        field: 'chatModeKeys',
+        value: [...pluginKeys, pluginKey],
+      });
 
       localStorage.setItem(
-        'pluginKeys',
+        'chatModeKeys',
         JSON.stringify([...pluginKeys, pluginKey]),
       );
     }
   };
 
-  const handleClearPluginKey = (pluginKey: PluginKey) => {
+  const handleClearPluginKey = (pluginKey: ChatModeKey) => {
     const updatedPluginKeys = pluginKeys.filter(
-      (key) => key.pluginId !== pluginKey.pluginId,
+      (key) => key.chatModeId !== pluginKey.chatModeId,
     );
 
     if (updatedPluginKeys.length === 0) {
-      homeDispatch({ field: 'pluginKeys', value: [] });
+      homeDispatch({ field: 'chatModeKeys', value: [] });
       localStorage.removeItem('pluginKeys');
       return;
     }
 
-    homeDispatch({ field: 'pluginKeys', value: updatedPluginKeys });
+    homeDispatch({ field: 'chatModeKeys', value: updatedPluginKeys });
 
     localStorage.setItem('pluginKeys', JSON.stringify(updatedPluginKeys));
   };
 
-  const handleExportData = () => {
-    exportData();
+  const handleExportData = async () => {
+    return exporter.exportData();
   };
 
-  const handleImportConversations = (data: SupportedExportFormats) => {
-    const { history, folders, prompts }: LatestExportFormat = importData(data);
+  const handleImportConversations = async (data: SupportedExportFormats) => {
+    const { history, folders, prompts }: LatestExportFormat =
+      await importer.importData(settings, data);
     homeDispatch({ field: 'conversations', value: history });
     homeDispatch({
       field: 'selectedConversation',
@@ -107,11 +117,9 @@ export const Chatbar = () => {
     });
     homeDispatch({ field: 'folders', value: folders });
     homeDispatch({ field: 'prompts', value: prompts });
-
-    window.location.reload();
   };
 
-  const handleClearConversations = () => {
+  const handleClearConversations = async () => {
     defaultModelId &&
       homeDispatch({
         field: 'selectedConversation',
@@ -120,31 +128,20 @@ export const Chatbar = () => {
           name: t('New Conversation'),
           messages: [],
           model: OpenAIModels[defaultModelId],
-          prompt: DEFAULT_SYSTEM_PROMPT,
-          temperature: DEFAULT_TEMPERATURE,
+          prompt: tChat(DEFAULT_SYSTEM_PROMPT),
+          temperature: settings.defaultTemperature,
           folderId: null,
         },
       });
 
-    homeDispatch({ field: 'conversations', value: [] });
-
-    localStorage.removeItem('conversationHistory');
-    localStorage.removeItem('selectedConversation');
-
-    const updatedFolders = folders.filter((f) => f.type !== 'chat');
-
-    homeDispatch({ field: 'folders', value: updatedFolders });
-    saveFolders(updatedFolders);
+    await conversationsAction.clear();
+    await foldersAction.clear();
   };
 
-  const handleDeleteConversation = (conversation: Conversation) => {
-    const updatedConversations = conversations.filter(
-      (c) => c.id !== conversation.id,
-    );
+  const handleDeleteConversation = async (conversation: Conversation) => {
+    const updatedConversations = await conversationsAction.remove(conversation);
 
-    homeDispatch({ field: 'conversations', value: updatedConversations });
     chatDispatch({ field: 'searchTerm', value: '' });
-    saveConversations(updatedConversations);
 
     if (updatedConversations.length > 0) {
       homeDispatch({
@@ -152,7 +149,9 @@ export const Chatbar = () => {
         value: updatedConversations[updatedConversations.length - 1],
       });
 
-      saveConversation(updatedConversations[updatedConversations.length - 1]);
+      await storageService.saveSelectedConversation(
+        updatedConversations[updatedConversations.length - 1],
+      );
     } else {
       defaultModelId &&
         homeDispatch({
@@ -162,8 +161,8 @@ export const Chatbar = () => {
             name: t('New Conversation'),
             messages: [],
             model: OpenAIModels[defaultModelId],
-            prompt: DEFAULT_SYSTEM_PROMPT,
-            temperature: DEFAULT_TEMPERATURE,
+            prompt: tChat(DEFAULT_SYSTEM_PROMPT),
+            temperature: settings.defaultTemperature,
             folderId: null,
           },
         });
@@ -180,7 +179,10 @@ export const Chatbar = () => {
   const handleDrop = (e: any) => {
     if (e.dataTransfer) {
       const conversation = JSON.parse(e.dataTransfer.getData('conversation'));
-      handleUpdateConversation(conversation, { key: 'folderId', value: 0 });
+      conversationsAction.updateValue(conversation, {
+        key: 'folderId',
+        value: null,
+      });
       chatDispatch({ field: 'searchTerm', value: '' });
       e.target.style.background = 'none';
     }
@@ -231,8 +233,8 @@ export const Chatbar = () => {
           chatDispatch({ field: 'searchTerm', value: searchTerm })
         }
         toggleOpen={handleToggleChatbar}
-        handleCreateItem={handleNewConversation}
-        handleCreateFolder={() => handleCreateFolder(t('New folder'), 'chat')}
+        handleCreateItem={() => conversationsAction.add()}
+        handleCreateFolder={() => foldersAction.add(t('New folder'), 'chat')}
         handleDrop={handleDrop}
         footerComponent={<ChatbarSettings />}
       />

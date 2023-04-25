@@ -14,11 +14,15 @@ import {
   useState,
 } from 'react';
 
+import useFolders from '@/hooks/useFolders';
+
 import { FolderInterface } from '@/types/folder';
 
 import HomeContext from '@/pages/api/home/home.context';
 
 import SidebarActionButton from '@/components/Buttons/SidebarActionButton';
+
+import { InputText } from '../Input/InputText';
 
 interface Props {
   currentFolder: FolderInterface;
@@ -33,7 +37,7 @@ const Folder = ({
   handleDrop,
   folderComponent,
 }: Props) => {
-  const { handleDeleteFolder, handleUpdateFolder } = useContext(HomeContext);
+  const [folders, foldersAction] = useFolders();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -47,8 +51,11 @@ const Folder = ({
     }
   };
 
-  const handleRename = () => {
-    handleUpdateFolder(currentFolder.id, renameValue);
+  const handleRename = async () => {
+    foldersAction.update({
+      ...currentFolder,
+      name: renameValue,
+    });
     setRenameValue('');
     setIsRenaming(false);
   };
@@ -101,9 +108,8 @@ const Folder = ({
             ) : (
               <IconCaretRight size={18} />
             )}
-            <input
+            <InputText
               className="mr-12 flex-1 overflow-hidden overflow-ellipsis border-neutral-400 bg-transparent text-left text-[12.5px] leading-3 text-white outline-none focus:border-neutral-100"
-              type="text"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={handleEnterDown}
@@ -138,7 +144,7 @@ const Folder = ({
                 e.stopPropagation();
 
                 if (isDeleting) {
-                  handleDeleteFolder(currentFolder.id);
+                  foldersAction.remove(currentFolder.id);
                 } else if (isRenaming) {
                   handleRename();
                 }
