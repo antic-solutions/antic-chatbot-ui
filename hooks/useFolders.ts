@@ -1,7 +1,5 @@
 import { useCallback, useContext } from 'react';
 
-import useStorageService from '@/services/useStorageService';
-
 import { trpc } from '@/utils/trpc';
 
 import { Conversation } from '@/types/chat';
@@ -21,8 +19,9 @@ type FoldersAction = {
 };
 
 export default function useFolders(): [FolderInterface[], FoldersAction] {
-  const storageService = useStorageService();
   const promptsUpdateAll = trpc.prompts.updateAll.useMutation();
+  const conversationUpdateAll = trpc.conversations.updateAll.useMutation();
+  const folderUpdateAll = trpc.folders.updateAll.useMutation();
   const folderUpdate = trpc.folders.update.useMutation();
   const folderRemove = trpc.folders.remove.useMutation();
   const folderRemoveAll = trpc.folders.removeAll.useMutation();
@@ -33,11 +32,11 @@ export default function useFolders(): [FolderInterface[], FoldersAction] {
 
   const updateAll = useCallback(
     async (updated: FolderInterface[]): Promise<FolderInterface[]> => {
-      await storageService.saveFolders(updated);
+      await folderUpdateAll.mutateAsync(updated);
       dispatch({ field: 'folders', value: updated });
       return updated;
     },
-    [dispatch, storageService],
+    [dispatch, folderUpdateAll],
   );
 
   const add = useCallback(
@@ -83,8 +82,10 @@ export default function useFolders(): [FolderInterface[], FoldersAction] {
       await folderRemove.mutateAsync({ id: folderId });
       dispatch({ field: 'folders', value: newState });
 
+      const targetConversations: Conversation[] = [];
       const updatedConversations: Conversation[] = conversations.map((c) => {
         if (c.folderId === folderId) {
+          targetConversations.push(c);
           return {
             ...c,
             folderId: null,
@@ -92,7 +93,7 @@ export default function useFolders(): [FolderInterface[], FoldersAction] {
         }
         return c;
       });
-      await storageService.saveConversations(updatedConversations);
+      await conversationUpdateAll.mutateAsync(targetConversations);
       dispatch({ field: 'conversations', value: updatedConversations });
 
       const updatedPrompts: Prompt[] = prompts.map((p) => {
@@ -111,13 +112,13 @@ export default function useFolders(): [FolderInterface[], FoldersAction] {
       return newState;
     },
     [
+      conversationUpdateAll,
       conversations,
       dispatch,
       folderRemove,
       folders,
       prompts,
       promptsUpdateAll,
-      storageService,
     ],
   );
 

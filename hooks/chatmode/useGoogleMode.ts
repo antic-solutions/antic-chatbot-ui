@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from 'react-query';
 
 import useApiService from '@/services/useApiService';
-import useStorageService from '@/services/useStorageService';
 
 import { HomeUpdater } from '@/utils/app/homeUpdater';
 
@@ -25,7 +24,6 @@ export function useGoogleMode(conversations: Conversation[]): ChatModeRunner {
     dispatch: homeDispatch,
   } = useContext(HomeContext);
   const apiService = useApiService();
-  const storageService = useStorageService();
   const [_, conversationsAction] = useConversations();
   const updater = new HomeUpdater(homeDispatch);
   const mutation = useMutation({
@@ -55,7 +53,6 @@ export function useGoogleMode(conversations: Conversation[]): ChatModeRunner {
         role: 'assistant',
         content: answer,
       });
-      await storageService.saveSelectedConversation(updatedConversation);
       const updatedConversations: Conversation[] = conversations.map(
         (conversation) => {
           if (conversation.id === selectedConversation.id) {

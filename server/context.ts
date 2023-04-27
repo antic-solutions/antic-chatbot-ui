@@ -9,7 +9,10 @@ import { CreateNextContextOptions } from '@trpc/server/adapters/next';
 
 export async function createContext(opts: CreateNextContextOptions) {
   const session = await getServerSession(opts.req, opts.res, authOptions);
-  const userHash = await getUserHash(opts.req, opts.res);
+  let userHash: string | undefined;
+  if (session) {
+    userHash = await getUserHash(opts.req, opts.res);
+  }
   return {
     req: opts.req,
     res: opts.res,

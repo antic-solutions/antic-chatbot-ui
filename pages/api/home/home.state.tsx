@@ -12,7 +12,7 @@ export interface HomeInitialState {
   loading: boolean;
   settings: Settings;
   messageIsStreaming: boolean;
-  modelError: ErrorMessage | null;
+  modelError: Error | null;
   models: OpenAIModel[];
   folders: FolderInterface[];
   conversations: Conversation[];

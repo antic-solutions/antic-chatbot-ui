@@ -5,8 +5,6 @@ import { useCreateReducer } from '@/hooks/useCreateReducer';
 import useFolders from '@/hooks/useFolders';
 import usePrompts from '@/hooks/usePrompts';
 
-import useStorageService from '@/services/useStorageService';
-
 import { Prompt } from '@/types/prompt';
 
 import HomeContext from '@/pages/api/home/home.context';

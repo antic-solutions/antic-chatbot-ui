@@ -42,7 +42,7 @@ const Sidebar = <T,>({
   handleCreateFolder,
   handleDrop,
 }: Props<T>) => {
-  const { t } = useTranslation('promptbar');
+  const { t } = useTranslation('sidebar');
 
   const allowDrop = (e: any) => {
     e.preventDefault();
@@ -82,7 +82,7 @@ const Sidebar = <T,>({
         </div>
         {(items?.length > 0 || searchTerm) && (
           <Search
-            placeholder={t('Search prompts...') || ''}
+            placeholder={t('Search conversations...') || ''}
             searchTerm={searchTerm}
             onSearch={handleSearchTerm}
           />
@@ -107,7 +107,7 @@ const Sidebar = <T,>({
             <div className="mt-8 select-none text-center text-white opacity-50">
               <IconMistOff className="mx-auto mb-3" />
               <span className="text-[14px] leading-normal">
-                {t('No prompts.')}
+                {t('No conversatoins.')}
               </span>
             </div>
           )}

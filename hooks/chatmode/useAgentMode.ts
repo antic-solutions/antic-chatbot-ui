@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from 'react-query';
 
 import useApiService from '@/services/useApiService';
-import useStorageService from '@/services/useStorageService';
 
 import { watchRefToAbort } from '@/utils/app/api';
 import { HomeUpdater } from '@/utils/app/homeUpdater';
@@ -29,7 +28,6 @@ export function useAgentMode(
 
   const { dispatch: homeDispatch } = useContext(HomeContext);
   const apiService = useApiService();
-  const storageService = useStorageService();
   const [_, conversationsAction] = useConversations();
 
   const updater = new HomeUpdater(homeDispatch);
@@ -110,7 +108,6 @@ export function useAgentMode(
         role: 'assistant',
         content: answer.answer,
       });
-      await storageService.saveSelectedConversation(updatedConversation);
       const updatedConversations: Conversation[] = conversations.map(
         (conversation) => {
           if (conversation.id === selectedConversation.id) {

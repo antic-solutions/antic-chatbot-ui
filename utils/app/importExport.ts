@@ -1,5 +1,4 @@
-import { StorageService } from '@/services/useStorageService';
-
+import { Conversation } from '@/types/chat';
 import {
   ExportFormatV1,
   ExportFormatV2,
@@ -8,6 +7,7 @@ import {
   LatestExportFormat,
   SupportedExportFormats,
 } from '@/types/export';
+import { FolderInterface } from '@/types/folder';
 import { Prompt } from '@/types/prompt';
 import { Settings } from '@/types/settings';
 
@@ -80,12 +80,10 @@ function currentDate() {
 }
 
 export const exportData = async (
-  storageService: StorageService,
+  history: Conversation[],
+  folders: FolderInterface[],
   prompts: Prompt[],
 ) => {
-  const history = await storageService.getConversations();
-  const folders = await storageService.getFolders();
-
   const data = {
     version: 4,
     history: history || [],

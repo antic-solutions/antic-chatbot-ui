@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from 'react-query';
 
 import useApiService from '@/services/useApiService';
-import useStorageService from '@/services/useStorageService';
 
 import { updateConversationFromStream } from '@/utils/app/clientstream';
 
@@ -29,7 +28,6 @@ export function useDirectMode(
 
   const { dispatch: homeDispatch } = useContext(HomeContext);
   const apiService = useApiService();
-  const storageService = useStorageService();
   const [_, conversationsAction] = useConversations();
 
   const mutation = useMutation({
@@ -75,7 +73,6 @@ export function useDirectMode(
         stopConversationRef,
       );
       stopConversationRef.current = false;
-      await storageService.saveSelectedConversation(updatedConversation);
       const updatedConversations: Conversation[] = conversations.map(
         (conversation) => {
           if (conversation.id === selectedConversation.id) {

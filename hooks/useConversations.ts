@@ -1,8 +1,6 @@
 import { useCallback, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import useStorageService from '@/services/useStorageService';
-
 import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 import { trpc } from '@/utils/trpc';
 
@@ -32,7 +30,7 @@ export default function useConversations(): [
 ] {
   const { t } = useTranslation('chat');
   const { t: tErr } = useTranslation('error');
-  const storageService = useStorageService();
+  const conversationUpdateAll = trpc.conversations.updateAll.useMutation();
   const conversationUpdate = trpc.conversations.update.useMutation();
   const conversationRemove = trpc.conversations.remove.useMutation();
   const conversationRemoveAll = trpc.conversations.removeAll.useMutation();
@@ -43,11 +41,11 @@ export default function useConversations(): [
 
   const updateAll = useCallback(
     async (updated: Conversation[]): Promise<Conversation[]> => {
-      await storageService.saveConversations(updated);
+      await conversationUpdateAll.mutateAsync(updated);
       dispatch({ field: 'conversations', value: updated });
       return updated;
     },
-    [dispatch, storageService],
+    [conversationUpdateAll, dispatch],
   );
 
   const add = useCallback(async () => {
@@ -75,7 +73,6 @@ export default function useConversations(): [
     const newState = [newConversation, ...conversations];
     dispatch({ field: 'conversations', value: newState });
 
-    await storageService.saveSelectedConversation(newConversation);
     dispatch({ field: 'selectedConversation', value: newConversation });
     dispatch({ field: 'loading', value: false });
     return newState;
@@ -85,7 +82,6 @@ export default function useConversations(): [
     defaultModelId,
     dispatch,
     settings.defaultTemperature,
-    storageService,
     t,
   ]);
 
@@ -100,18 +96,11 @@ export default function useConversations(): [
       await conversationUpdate.mutateAsync(conversation);
       dispatch({ field: 'conversations', value: newConversations });
       if (selectedConversation?.id === conversation.id) {
-        await storageService.saveSelectedConversation(conversation);
         dispatch({ field: 'selectedConversation', value: conversation });
       }
       return conversation;
     },
-    [
-      conversationUpdate,
-      conversations,
-      dispatch,
-      selectedConversation?.id,
-      storageService,
-    ],
+    [conversationUpdate, conversations, dispatch, selectedConversation?.id],
   );
 
   const updateValue = useCallback(
@@ -122,12 +111,11 @@ export default function useConversations(): [
       };
       const newState = await update(updatedConversation);
       if (selectedConversation?.id === conversation.id) {
-        await storageService.saveSelectedConversation(updatedConversation);
         dispatch({ field: 'selectedConversation', value: updatedConversation });
       }
       return newState;
     },
-    [dispatch, selectedConversation?.id, storageService, update],
+    [dispatch, selectedConversation?.id, update],
   );
 
   const remove = useCallback(

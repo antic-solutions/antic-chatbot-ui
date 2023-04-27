@@ -8,8 +8,6 @@ import { useExporter } from '@/hooks/useExporter';
 import useFolders from '@/hooks/useFolders';
 import { useImporter } from '@/hooks/useImporter';
 
-import useStorageService from '@/services/useStorageService';
-
 import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 
 import { Conversation } from '@/types/chat';
@@ -32,7 +30,6 @@ import { v4 as uuidv4 } from 'uuid';
 export const Chatbar = () => {
   const { t } = useTranslation('sidebar');
   const { t: tChat } = useTranslation('chat');
-  const storageService = useStorageService();
   const [folders, foldersAction] = useFolders();
   const exporter = useExporter();
   const importer = useImporter();
@@ -148,10 +145,6 @@ export const Chatbar = () => {
         field: 'selectedConversation',
         value: updatedConversations[updatedConversations.length - 1],
       });
-
-      await storageService.saveSelectedConversation(
-        updatedConversations[updatedConversations.length - 1],
-      );
     } else {
       defaultModelId &&
         homeDispatch({
@@ -166,8 +159,6 @@ export const Chatbar = () => {
             folderId: null,
           },
         });
-
-      localStorage.removeItem('selectedConversation');
     }
   };
 
@@ -206,7 +197,7 @@ export const Chatbar = () => {
         value: conversations,
       });
     }
-  }, [searchTerm, conversations]);
+  }, [searchTerm, conversations, chatDispatch]);
 
   return (
     <ChatbarContext.Provider

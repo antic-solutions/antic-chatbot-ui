@@ -12,8 +12,6 @@ import { useTranslation } from 'next-i18next';
 
 import useConversations from '@/hooks/useConversations';
 
-import useStorageService from '@/services/useStorageService';
-
 import { Message } from '@/types/chat';
 
 import HomeContext from '@/pages/api/home/home.context';
@@ -32,7 +30,6 @@ export interface Props {
 
 export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
   const { t } = useTranslation('chat');
-  const storageService = useStorageService();
   const [_, conversationsAction] = useConversations();
 
   const {
@@ -76,7 +73,6 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
         };
 
         await conversationsAction.update(updatedConversation);
-        await storageService.saveSelectedConversation(updatedConversation);
         homeDispatch({
           field: 'selectedConversation',
           value: updatedConversation,
@@ -112,7 +108,6 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
     };
 
     await conversationsAction.update(updatedConversation);
-    await storageService.saveSelectedConversation(updatedConversation);
     homeDispatch({ field: 'selectedConversation', value: updatedConversation });
   };
 
