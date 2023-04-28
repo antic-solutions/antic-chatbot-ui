@@ -48,7 +48,7 @@ push:
 		--push \
 		-t ${DOCKER_USER}/${SERVICE_NAME}:$(IMAGE_TAG) \
 		--push \
-		-f ./Dockerfile.prod .
+		-f ./Dockerfile .
 
 clean:
 	docker buildx rm 
