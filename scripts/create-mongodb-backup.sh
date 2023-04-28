@@ -4,9 +4,9 @@ set -euo pipefail
 
 # Create a dump from the MongoDB container running in local docker environment.
 
-mongo_user=$(cat .env.local|grep MONGO_INITDB_ROOT_USERNAME|cut -d '=' -f 2)
-mongo_pass=$(cat .env.local|grep MONGO_INITDB_ROOT_PASSWORD|cut -d '=' -f 2)
-mongo_db=$(cat .env.local|grep MONGODB_DB|cut -d '=' -f 2)
+mongo_user=$(cat .env|grep MONGO_INITDB_ROOT_USERNAME|cut -d '=' -f 2)
+mongo_pass=$(cat .env|grep MONGO_INITDB_ROOT_PASSWORD|cut -d '=' -f 2)
+mongo_db=$(cat .env|grep MONGODB_DB|cut -d '=' -f 2)
 mongo_host=localhost
 mongo_port=27017
 output="./${mongo_db}.gz"
