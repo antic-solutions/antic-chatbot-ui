@@ -1,27 +1,21 @@
 version: '3.6'
 
 services:
-<<<<<<< HEAD
-  chatbot-anticsolutions:
-    container_name: chatbot-anticsolutions
-=======
   chatui:
->>>>>>> dotneet/main
+    restart: unless-stopped
     build: .
     ports:
       - 3000:3000
     env_file:
-<<<<<<< HEAD
-      - .env
-=======
       - .env.local
+
   mongo:
     image: mongo:5.0
-    restart: always
+    restart: unless-stopped
     volumes:
       - mongodb-configdb:/data/configdb
       - mongodb-data:/data/db
-    env_file:
+    env_file: 
       # Specify these envs through .env.local
       # MONGO_INITDB_ROOT_USERNAME: root
       # MONGO_INITDB_ROOT_PASSWORD: example
@@ -32,4 +26,3 @@ volumes:
     name: chatui-mongodb-data
   mongodb-configdb:
     name: chatui-mongodb-configdb
->>>>>>> dotneet/main
