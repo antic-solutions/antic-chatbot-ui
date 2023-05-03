@@ -6,6 +6,7 @@ import { useMutation } from 'react-query';
 import useApiService from '@/services/useApiService';
 
 import { updateConversationFromStream } from '@/utils/app/clientstream';
+import { createConversationNameFromMessage } from '@/utils/app/conversation';
 
 import { ChatBody, ChatModeRunner, Conversation, Message } from '@/types/chat';
 
@@ -56,8 +57,7 @@ export function useDirectMode(
       }
       if (updatedConversation.messages.length === 1) {
         const { content } = message;
-        const customName =
-          content.length > 30 ? content.substring(0, 30) + '...' : content;
+        const customName = createConversationNameFromMessage(content);
         updatedConversation = {
           ...updatedConversation,
           name: customName,

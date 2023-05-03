@@ -6,6 +6,7 @@ import { useMutation } from 'react-query';
 import useApiService from '@/services/useApiService';
 
 import { watchRefToAbort } from '@/utils/app/api';
+import { createConversationNameFromMessage } from '@/utils/app/conversation';
 import { HomeUpdater } from '@/utils/app/homeUpdater';
 
 import { Answer, PlanningResponse, PluginResult } from '@/types/agent';
@@ -22,6 +23,7 @@ import useConversations from '../useConversations';
 export function useAgentMode(
   conversations: Conversation[],
   stopConversationRef: MutableRefObject<boolean>,
+  conversational: boolean,
 ): ChatModeRunner {
   const { t } = useTranslation('chat');
   const { t: errT } = useTranslation('error');
@@ -41,21 +43,40 @@ export function useAgentMode(
           // todo: handle this
           return { type: 'answer', answer: t('No Result') };
         }
-        const planningResponse: PlanningResponse = await watchRefToAbort(
-          stopConversationRef,
-          (controller) =>
-            apiService.planning(
-              {
-                taskId,
-                key: params.body.key,
-                model: params.body.model,
-                messages: params.body.messages,
-                pluginResults: toolActionResults,
-                enabledToolNames: params.plugins.map((p) => p.nameForModel),
-              },
-              controller.signal,
-            ),
-        );
+        let planningResponse: PlanningResponse | null = null;
+        if (conversational) {
+          planningResponse = await watchRefToAbort(
+            stopConversationRef,
+            (controller) =>
+              apiService.planningConv(
+                {
+                  taskId,
+                  key: params.body.key,
+                  model: params.body.model,
+                  messages: params.body.messages,
+                  pluginResults: toolActionResults,
+                  enabledToolNames: params.plugins.map((p) => p.nameForModel),
+                },
+                controller.signal,
+              ),
+          );
+        } else {
+          planningResponse = await watchRefToAbort(
+            stopConversationRef,
+            (controller) =>
+              apiService.planning(
+                {
+                  taskId,
+                  key: params.body.key,
+                  model: params.body.model,
+                  messages: params.body.messages,
+                  pluginResults: toolActionResults,
+                  enabledToolNames: params.plugins.map((p) => p.nameForModel),
+                },
+                controller.signal,
+              ),
+          );
+        }
         taskId = planningResponse.taskId;
         const { result } = planningResponse;
         if (result.type === 'action') {
@@ -93,9 +114,15 @@ export function useAgentMode(
       }
     },
     onMutate: async (variables) => {
+      let conversation = variables.conversation;
+      if (conversation.messages.length === 1) {
+        conversation.name = createConversationNameFromMessage(
+          variables.message.content,
+        );
+      }
       homeDispatch({
         field: 'selectedConversation',
-        value: variables.conversation,
+        value: conversation,
       });
       homeDispatch({ field: 'loading', value: true });
       homeDispatch({ field: 'messageIsStreaming', value: true });

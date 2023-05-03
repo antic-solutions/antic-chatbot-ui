@@ -5,8 +5,6 @@ import { TaskExecutionContext } from './executor';
 import google from './google';
 import wikipedia from './wikipedia';
 
-import pluginsJson from '@/plugins.json';
-
 interface PluginsJson {
   internals: string[];
   urls: string[];
@@ -69,9 +67,26 @@ export const listTools = async (): Promise<Plugin[]> => {
     return cache;
   }
 
-  const plugins = pluginsJson as PluginsJson;
+  const jsonUrls = (process.env.PLUGINS_JSON_URLS || '')
+    .split(',')
+    .filter(Boolean);
+  const pluginJsons: PluginsJson[] = [];
+  for (const jsonUrl of jsonUrls) {
+    const response = await fetch(jsonUrl);
+    if (!response.body) {
+      throw new Error(
+        `Failed to fetch plugin list from ${jsonUrl} with status ${response.status}`,
+      );
+    }
+    const json = await response.json();
+    pluginJsons.push(json);
+  }
+
   const result: Plugin[] = [];
-  for (const plugin of plugins.internals) {
+  const internals = (process.env.PLUGINS_INTERNAL || '')
+    .split(',')
+    .map((s) => s.trim());
+  for (const plugin of internals) {
     if (internalPlugins[plugin] !== undefined) {
       result.push(internalPlugins[plugin]);
     } else {
@@ -79,12 +94,14 @@ export const listTools = async (): Promise<Plugin[]> => {
     }
   }
 
-  for (const url of plugins.urls) {
-    try {
-      const tool = await loadFromUrl(url);
-      result.push(tool);
-    } catch (e) {
-      console.warn(`Failed to load plugin from ${url}.`, e);
+  for (const pluginJson of pluginJsons) {
+    for (const url of pluginJson.urls) {
+      try {
+        const tool = await loadFromUrl(url);
+        result.push(tool);
+      } catch (e) {
+        console.warn(`Failed to load plugin from ${url}.`, e);
+      }
     }
   }
 

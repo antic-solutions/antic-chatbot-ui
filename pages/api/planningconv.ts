@@ -5,7 +5,7 @@ import { ensureHasValidSession } from '@/utils/server/auth';
 
 import { PlanningRequest, PlanningResponse } from '@/types/agent';
 
-import { executeNotConversationalReactAgent } from '@/agent/agent';
+import { executeReactAgent } from '@/agent/agentConvo';
 import { createContext } from '@/agent/plugins/executor';
 import path from 'node:path';
 import { v4 } from 'uuid';
@@ -37,9 +37,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const lastMessage = messages[messages.length - 1];
     const verbose = process.env.DEBUG_AGENT_LLM_LOGGING === 'true';
     const context = createContext(taskId, req, model, verbose, key);
-    const result = await executeNotConversationalReactAgent(
+    const result = await executeReactAgent(
       context,
       enabledToolNames,
+      messages.slice(0, messages.length - 1),
       lastMessage.content,
       toolActionResults,
       verbose,

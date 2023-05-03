@@ -13,7 +13,12 @@ export const useChatModeRunner = (
 ) => {
   const directMode = useDirectMode(conversations, stopConversationRef);
   const googleMode = useGoogleMode(conversations);
-  const agentMode = useAgentMode(conversations, stopConversationRef);
+  const conversationalAgentMode = useAgentMode(
+    conversations,
+    stopConversationRef,
+    true,
+  );
+  const agentMode = useAgentMode(conversations, stopConversationRef, false);
   return (plugin: ChatMode | null): ChatModeRunner => {
     if (!plugin) {
       return directMode;
@@ -23,6 +28,8 @@ export const useChatModeRunner = (
         return googleMode;
       case ChatModeID.AGENT:
         return agentMode;
+      case ChatModeID.CONVERSATIONAL_AGENT:
+        return conversationalAgentMode;
       default:
         return directMode;
     }
