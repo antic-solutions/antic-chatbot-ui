@@ -1,4 +1,5 @@
 import NextAuth, { NextAuthOptions, PagesOptions } from 'next-auth';
+import CognitoProvider from 'next-auth/providers/cognito';
 import Credentials from 'next-auth/providers/credentials';
 import GithubProvider from 'next-auth/providers/github';
 import GoogleProvider from 'next-auth/providers/google';
@@ -36,6 +37,15 @@ if (process.env.GITHUB_CLIENT_ID) {
     GithubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+  );
+}
+if (process.env.COGNITO_CLIENT_ID) {
+  providers.push(
+    CognitoProvider({
+      clientId: process.env.COGNITO_CLIENT_ID,
+      clientSecret: process.env.COGNITO_CLIENT_SECRET!,
+      issuer: process.env.COGNITO_ISSUER,
     }),
   );
 }

@@ -2,6 +2,8 @@
 
 This repo is forked from [chatbot-ui](https://github.com/mckaywrigley/chatbot-ui).
 
+This repository is highly experimental, so please do not expect compatibility when performing updates.
+
 ## [DEMO](https://smart-chatbot-ui.vercel.app/)
 
 - Do not input personal information. conversation, prompts, folders are stored in mongodb.
