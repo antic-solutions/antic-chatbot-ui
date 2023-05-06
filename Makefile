@@ -40,18 +40,20 @@ push:
 	@docker context use ${DOCKER_BUILDX_NAME}
 	@docker buildx use ${DOCKER_BUILDX_NAME} 
 
-	@docker pull ${DOCKER_USERNAME}/${SERVICE_NAME}:${GIT_HASH}
-	@docker tag  ${DOCKER_USERNAME}/${SERVICE_NAME}:${GIT_HASH} ${DOCKER_USERNAME}/${SERVICE_NAME}:latest
 
 	@docker buildx build \
 		--platform linux/amd64 \
 		--push \
 		-t ${DOCKER_USER}/${SERVICE_NAME}:$(IMAGE_TAG) \
 		--push \
-		-f ./Dockerfile .
+		-f ./Dockerfile .;
 
 clean:
 	docker buildx rm 
 
 prune:
 	docker system prune -a --volumes
+
+
+	# @docker pull ${SERVICE_NAME}/${SERVICE_NAME}:${IMAGE_TAG}
+	# @docker tag  ${SERVICE_NAME}/${SERVICE_NAME}:${IMAGE_TAG} ${SERVICE_NAME}/${SERVICE_NAME}:latest
