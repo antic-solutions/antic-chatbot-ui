@@ -10,19 +10,18 @@ import { CallbackManager } from 'langchain/callbacks';
 import { PromptTemplate } from 'langchain/prompts';
 import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from 'openai';
 
-export const executeNotConversationalReactAgent = async (
-  context: TaskExecutionContext,
-  enabledToolNames: string[],
-  input: string,
-  pluginResults: PluginResult[],
-  verbose: boolean = false,
-): Promise<ReactAgentResult> => {
+const setupCallbackManager = (verbose: boolean): void => {
   const callbackManager = new CallbackManager();
   if (verbose) {
     const handler = new DebugCallbackHandler();
     callbackManager.addHandler(handler);
   }
+};
 
+const createPrompts = (): {
+  sytemPrompt: PromptTemplate;
+  userPrompt: PromptTemplate;
+} => {
   const sytemPrompt: PromptTemplate = PromptTemplate.fromTemplate(
     prompts.systemPrefix +
       '\n\n' +
@@ -34,7 +33,10 @@ export const executeNotConversationalReactAgent = async (
   const userPrompt: PromptTemplate = PromptTemplate.fromTemplate(
     prompts.userPrompt,
   );
+  return { sytemPrompt, userPrompt };
+};
 
+const createAgentScratchpad = (pluginResults: PluginResult[]): string => {
   let agentScratchpad = '';
   if (pluginResults.length > 0) {
     agentScratchpad += `This was your previous work (but I haven't seen any of it! I only see what you return as final answer):\n`;
@@ -50,13 +52,18 @@ Observation: ${observation}\n`;
     }
   }
   agentScratchpad += '';
+  return agentScratchpad;
+};
 
-  const tools = await listToolsBySpecifiedPlugins(context, enabledToolNames);
-  const toolDescriptions = tools
-    .map((tool) => tool.nameForModel + ': ' + tool.descriptionForModel)
-    .join('\n');
-  const toolNames = tools.map((tool) => tool.nameForModel).join(', ');
-
+const createFormattedPrompts = async (
+  sytemPrompt: PromptTemplate,
+  context: TaskExecutionContext,
+  toolDescriptions: string,
+  toolNames: string,
+  userPrompt: PromptTemplate,
+  input: string,
+  agentScratchpad: string,
+): Promise<{ systemContent: string; userContent: string }> => {
   const systemContent = await sytemPrompt.format({
     locale: context.locale,
     tool_descriptions: toolDescriptions,
@@ -66,8 +73,32 @@ Observation: ${observation}\n`;
     input,
     agent_scratchpad: agentScratchpad,
   });
-  const openai = new OpenAIApi(new Configuration({ apiKey: context.apiKey }));
-  const messages: ChatCompletionRequestMessage[] = [
+  return { systemContent, userContent };
+};
+
+const createMessages = async (
+  context: TaskExecutionContext,
+  tools: Plugin[],
+  pluginResults: PluginResult[],
+  input: string
+): Promise<ChatCompletionRequestMessage[]> => {
+  const { sytemPrompt, userPrompt } = createPrompts();
+  const agentScratchpad = createAgentScratchpad(pluginResults);
+  const toolDescriptions = tools
+    .map((tool) => tool.nameForModel + ': ' + tool.descriptionForModel)
+    .join('\n');
+  const toolNames = tools.map((tool) => tool.nameForModel).join(', ');
+  const { systemContent, userContent } = await createFormattedPrompts(
+    sytemPrompt,
+    context,
+    toolDescriptions,
+    toolNames,
+    userPrompt,
+    input,
+    agentScratchpad,
+  );
+
+  return [
     {
       role: 'system',
       content: systemContent,
@@ -77,14 +108,41 @@ Observation: ${observation}\n`;
       content: userContent,
     },
   ];
+};
+
+const logVerboseRequest = (messages: ChatCompletionRequestMessage[]): void => {
+  console.log(chalk.greenBright('LLM Request:'));
+  for (const message of messages) {
+    console.log(chalk.blue(message.role + ': ') + message.content);
+  }
+  console.log('');
+};
+
+const logVerboseResponse = (
+  ellapsed: number,
+  responseText: string | undefined,
+): void => {
+  console.log(chalk.greenBright('LLM Response:'));
+  console.log(`ellapsed: ${ellapsed / 1000} sec.`);
+  console.log(responseText);
+  console.log('');
+};
+
+export const executeNotConversationalReactAgent = async (
+  context: TaskExecutionContext,
+  enabledToolNames: string[],
+  input: string,
+  pluginResults: PluginResult[],
+  verbose: boolean = false,
+): Promise<ReactAgentResult> => {
+  setupCallbackManager(verbose);
+  const tools = await listToolsBySpecifiedPlugins(context, enabledToolNames);
+  const openai = new OpenAIApi(new Configuration({ apiKey: context.apiKey }));
+  const messages = await createMessages(context, tools, pluginResults, input);
 
   const start = Date.now();
   if (verbose) {
-    console.log(chalk.greenBright('LLM Request:'));
-    for (const message of messages) {
-      console.log(chalk.blue(message.role + ': ') + message.content);
-    }
-    console.log('');
+    logVerboseRequest(messages);
   }
 
   const result = await openai.createChatCompletion({
@@ -97,10 +155,7 @@ Observation: ${observation}\n`;
   const responseText = result.data.choices[0].message?.content;
   const ellapsed = Date.now() - start;
   if (verbose) {
-    console.log(chalk.greenBright('LLM Response:'));
-    console.log(`ellapsed: ${ellapsed / 1000} sec.`);
-    console.log(responseText);
-    console.log('');
+    logVerboseResponse(ellapsed, responseText);
   }
   const output = parseResult(tools, responseText!);
   return output;
@@ -110,11 +165,15 @@ export const parseResult = (
   tools: Plugin[],
   result: string,
 ): ReactAgentResult => {
-  const matchAnswer = result.match(/Final Answer:(.*)/);
-  const answer = matchAnswer ? matchAnswer[1] : '';
+  const matchAnswer = result.match(/Final Answer:([\s\S]*)/);
+  let answer = matchAnswer ? matchAnswer[1].trim() : '';
+  answer =
+    answer.indexOf('Positivity:') !== -1
+      ? answer.slice(0, answer.indexOf('Positivity:')).trim()
+      : answer;
   const answerResult: ReactAgentResult = {
     type: 'answer',
-    answer: answer.trim(),
+    answer: answer,
   };
 
   // if the positivity is high enough, return the answer
@@ -125,10 +184,10 @@ export const parseResult = (
     }
   }
 
-  const matchThought = result.match(/Thought:(.*)\nAction:/);
+  const matchThought = result.match(/Thought:(.*)(\n|$)/);
   let thought = '';
   if (matchThought) {
-    thought = matchThought[1] || '';
+    thought = matchThought[1].trim() || '';
   }
   const matchAction = result.match(/Action:(.*)(\n|$)/);
   let action = '';

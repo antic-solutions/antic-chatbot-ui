@@ -20,6 +20,7 @@ import HomeContext from '@/pages/api/home/home.context';
 
 import { ChatModeIcon } from '@/components/Chat/ChatModeIcon';
 
+import ChatContext from './Chat.context';
 import { ChatInputTokenCount } from './ChatInputTokenCount';
 import { ChatModeSelect } from './ChatModeSelect';
 import { ChatPluginList } from './ChatPluginList';
@@ -35,7 +36,6 @@ interface Props {
     plugins: Plugin[],
   ) => void;
   onRegenerate: (chatMode: ChatMode | null, plugins: Plugin[]) => void;
-  stopConversationRef: MutableRefObject<boolean>;
   textareaRef: MutableRefObject<HTMLTextAreaElement | null>;
 }
 
@@ -111,17 +111,22 @@ function ChatControlButton({
   );
 }
 
-export const ChatInput = ({
-  onSend,
-  onRegenerate,
-  stopConversationRef,
-  textareaRef,
-}: Props) => {
+export const ChatInput = ({ onSend, onRegenerate, textareaRef }: Props) => {
   const { t } = useTranslation('chat');
 
   const {
-    state: { selectedConversation, messageIsStreaming, prompts },
+    state: {
+      selectedConversation,
+      messageIsStreaming,
+      prompts,
+      stopConversationRef,
+    },
   } = useContext(HomeContext);
+
+  const {
+    state: { selectedPlugins, chatMode },
+    dispatch: chatDispatch,
+  } = useContext(ChatContext);
 
   const [content, setContent] = useState<string>();
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -131,8 +136,6 @@ export const ChatInput = ({
   const [variables, setVariables] = useState<string[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showPluginSelect, setShowPluginSelect] = useState(false);
-  const [chatMode, setChatMode] = useState<ChatMode>(ChatModes.direct);
-  const [selectedPlugins, setSelectedPlugins] = useState<Plugin[]>([]);
   const [lastDownKey, setLastDownKey] = useState<string>('');
   const [endComposing, setEndComposing] = useState<boolean>(false);
 
@@ -320,7 +323,7 @@ export const ChatInput = ({
         textareaRef?.current?.scrollHeight > 400 ? 'auto' : 'hidden'
       }`;
     }
-  }, [content]);
+  }, [content, textareaRef]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -359,7 +362,9 @@ export const ChatInput = ({
         <ChatInputContainer>
           <ChatPluginList
             selectedPlugins={selectedPlugins}
-            onChange={(plugins) => setSelectedPlugins(plugins)}
+            onChange={(plugins) =>
+              chatDispatch({ field: 'selectedPlugins', value: plugins })
+            }
           />
         </ChatInputContainer>
       )}
@@ -383,7 +388,7 @@ export const ChatInput = ({
                 }
               }}
               onChatModeChange={(plugin: ChatMode) => {
-                setChatMode(plugin);
+                chatDispatch({ field: 'chatMode', value: plugin });
                 setShowPluginSelect(false);
 
                 if (textareaRef && textareaRef.current) {

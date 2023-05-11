@@ -11,6 +11,7 @@ import { FC, memo, useContext, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import useConversations from '@/hooks/useConversations';
+import useMesseageSender from '@/hooks/useMessageSender';
 
 import { Message } from '@/types/chat';
 
@@ -18,6 +19,7 @@ import HomeContext from '@/pages/api/home/home.context';
 
 import { CodeBlock } from '../Markdown/CodeBlock';
 import { MemoizedReactMarkdown } from '../Markdown/MemoizedReactMarkdown';
+import ChatContext from './Chat.context';
 
 import rehypeMathjax from 'rehype-mathjax';
 import remarkGfm from 'remark-gfm';
@@ -31,11 +33,15 @@ export interface Props {
 export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
   const { t } = useTranslation('chat');
   const [_, conversationsAction] = useConversations();
+  const sendMessage = useMesseageSender();
 
   const {
     state: { selectedConversation, conversations },
     dispatch: homeDispatch,
   } = useContext(HomeContext);
+  const {
+    state: { selectedPlugins, chatMode },
+  } = useContext(ChatContext);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -66,21 +72,24 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
             }
           })
           .filter((m) => m) as Message[];
-
+        const deleteCount =
+          selectedConversation.messages.length - updatedMessages.length;
         const updatedConversation = {
           ...selectedConversation,
           messages: updatedMessages,
         };
-
-        await conversationsAction.update(updatedConversation);
         homeDispatch({
           field: 'selectedConversation',
-          value: updatedConversation,
+          value: selectedConversation,
         });
         homeDispatch({
           field: 'currentMessage',
           value: { ...message, content: messageContent },
         });
+        await conversationsAction.update(updatedConversation);
+
+        const newMessage = { ...message, content: messageContent };
+        sendMessage(newMessage, deleteCount, chatMode, selectedPlugins);
       }
     }
     setIsEditing(false);
@@ -108,7 +117,6 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
     };
 
     await conversationsAction.update(updatedConversation);
-    homeDispatch({ field: 'selectedConversation', value: updatedConversation });
   };
 
   const handlePressEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

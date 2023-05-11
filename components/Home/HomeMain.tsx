@@ -16,7 +16,6 @@ type HomeMainProps = {
 };
 
 export const HomeMain = ({ selectedConversation }: HomeMainProps) => {
-  const stopConversationRef = useRef<boolean>(false);
   const {
     state: { settings },
   } = useContext(HomeContext);
@@ -37,7 +36,7 @@ export const HomeMain = ({ selectedConversation }: HomeMainProps) => {
         <Chatbar />
 
         <div className="flex flex-1">
-          <Chat stopConversationRef={stopConversationRef} />
+          <Chat />
         </div>
 
         <Promptbar />

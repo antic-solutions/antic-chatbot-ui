@@ -9,7 +9,7 @@ import { LLMResult } from 'langchain/dist/schema';
 import { ChatCompletionRequestMessage } from 'openai';
 
 const strip = (str: string, c: string) => {
-  const m = str.match(new RegExp(`${c}(.*)${c}`));
+  const m = str.match(new RegExp(`^${c}(.*)${c}$`));
   if (m) {
     return m[1];
   }

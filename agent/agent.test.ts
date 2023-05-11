@@ -59,7 +59,8 @@ Action Input: 'input'`;
     const result = `Some thought
 Action: nonExistingTool
 Action Input: 'input'
-Final Answer: some answer`;
+Final Answer: some answer
+Positivity: 9`;
     expect(parseResult(tools, result)).toEqual({
       type: 'answer',
       answer: 'some answer',

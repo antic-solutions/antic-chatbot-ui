@@ -1,3 +1,5 @@
+import { MutableRefObject } from 'react';
+
 import { Conversation, Message } from '@/types/chat';
 import { ChatModeKey } from '@/types/chatmode';
 import { ErrorMessage } from '@/types/error';
@@ -27,9 +29,10 @@ export interface HomeInitialState {
   defaultModelId: OpenAIModelID | undefined;
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
+  stopConversationRef: MutableRefObject<boolean>;
 }
 
-export const initialState: HomeInitialState = {
+export const initialState: Partial<HomeInitialState> = {
   apiKey: '',
   loading: false,
   chatModeKeys: [],

@@ -30,7 +30,7 @@ Use this if you want to respond directly to the human. Markdown code snippet for
 \`\`\`json
 {{
     "action": "Final Answer",
-    "action_input": string \\ You should put what you want to return to use here
+    "action_input": string \\ You should put what you want to return to use here. Use markdown to format your answer. When displaying images, use the following format: ![caption](url) .
 }}
 \`\`\``;
 

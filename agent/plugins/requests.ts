@@ -55,11 +55,14 @@ export class RequestsPostTool implements Plugin, RequestTool {
       const { url, data } = JSON.parse(input);
       const res = await fetch(url, {
         method: 'POST',
-        headers: this.headers,
+        headers: { 'content-type': 'application/json', ...this.headers },
         body: JSON.stringify(data),
       });
       return res.text();
     } catch (error) {
+      if (error instanceof SyntaxError) {
+        return 'ERROR: Action Input must be a json with two keys: "url" and "data".';
+      }
       return `${error}`;
     }
   }

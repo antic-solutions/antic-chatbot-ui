@@ -1,4 +1,4 @@
-import { MutableRefObject } from 'react';
+import { MutableRefObject, useContext } from 'react';
 
 import { useAgentMode } from '@/hooks/chatmode/useAgentMode';
 import { useDirectMode } from '@/hooks/chatmode/useDirectMode';
@@ -7,10 +7,12 @@ import { useGoogleMode } from '@/hooks/chatmode/useGoogleMode';
 import { ChatModeRunner, Conversation } from '@/types/chat';
 import { ChatMode, ChatModeID } from '@/types/chatmode';
 
-export const useChatModeRunner = (
-  conversations: Conversation[],
-  stopConversationRef: MutableRefObject<boolean>,
-) => {
+import HomeContext from '@/pages/api/home/home.context';
+
+export const useChatModeRunner = (conversations: Conversation[]) => {
+  const {
+    state: { stopConversationRef },
+  } = useContext(HomeContext);
   const directMode = useDirectMode(conversations, stopConversationRef);
   const googleMode = useGoogleMode(conversations);
   const conversationalAgentMode = useAgentMode(

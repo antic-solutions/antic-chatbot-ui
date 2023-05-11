@@ -3,6 +3,7 @@ import { Action, Plugin, RemotePluginTool } from '@/types/agent';
 import { createApiTools, createWebpageTools } from '.';
 import { TaskExecutionContext } from './executor';
 import google from './google';
+import python from './python';
 import wikipedia from './wikipedia';
 
 interface PluginsJson {
@@ -13,6 +14,7 @@ interface PluginsJson {
 const internalPlugins = {
   [wikipedia.nameForModel]: wikipedia,
   [google.nameForModel]: google,
+  [python.nameForModel]: python,
 };
 
 function snakeToCamel(obj: Record<string, any>) {
@@ -45,16 +47,15 @@ const loadFromUrl = async (url: string): Promise<Plugin> => {
     );
   }
   const apiUrlJson = (await apiSpecRes.text()).trim();
-  const apiSpec = `Usage Guide: ${plugin.descriptionForHuman}\n\nOpenAPI Spec: ${apiUrlJson}`;
+  const apiSpec = `Usage Guide: ${plugin.descriptionForModel}\n\nOpenAPI Spec: ${apiUrlJson}`;
   return {
     ...plugin,
     // override description for model.
     descriptionForModel: `Call this tool to get the OpenAPI spec (and usage guide)
-for interacting with the ${plugin.nameForHuman} API.
-You should only call this ONCE! What is the "
-${plugin.nameForHuman} API useful for? "
-${plugin.descriptionForHuman}`,
-    apiSpec: `Usage Guide: ${plugin.descriptionForHuman}\n\nOpenAPI Spec: ${apiUrlJson}`,
+  for interacting with the ${plugin.nameForModel} API.
+  You should only call this ONCE! What is the "${plugin.nameForModel} API useful for?"
+  ${plugin.descriptionForHuman}`,
+    apiSpec,
     displayForUser: true,
     execute: async (ctx: TaskExecutionContext, action: Action) => apiSpec,
   };

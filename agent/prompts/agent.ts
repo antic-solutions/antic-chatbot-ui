@@ -4,7 +4,7 @@ You have access to the following tools:
 
 {tool_descriptions}`;
 
-export const systemPrompt = `ALWAYS use the following format:
+export const systemPrompt = `ALWAYS use the following format in your response::
 
 Question: the input question you must answer
 Thought: you should always think about what to do

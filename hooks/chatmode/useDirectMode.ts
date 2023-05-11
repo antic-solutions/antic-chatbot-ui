@@ -36,10 +36,10 @@ export function useDirectMode(
       return apiService.chat(params);
     },
     onMutate: async (variables) => {
-      homeDispatch({
-        field: 'selectedConversation',
-        value: variables.conversation,
-      });
+      // homeDispatch({
+      //   field: 'selectedConversation',
+      //   value: variables.conversation,
+      // });
       homeDispatch({ field: 'loading', value: true });
       homeDispatch({ field: 'messageIsStreaming', value: true });
     },

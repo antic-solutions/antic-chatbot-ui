@@ -14,19 +14,20 @@ This repository is highly experimental, so please do not expect compatibility wh
 
 - SSO Auth(Google, GitHub)
 - ChatGPT compatible plugins
+- Python Interpreter Plugin
 - Persitent storage(MongoDB)
 - IME support
 
-![Chatbot UI](./docs/screenshot_2023-04-18.png)
+![Chatbot UI](./docs/screenshot_2023-05-08.png)
 
 ## Updates
 
 Chatbot UI will be updated over time.
-
 Expect frequent improvements.
 
 **Recent updates:**
 
+- [x] Python Interpreter (5/8/23)
 - [x] Multiple Users with MongoDB Support (4/19/23)
 - [x] Plugins(ChatGPT compatible) (4/17/23)
 - [x] SSO Auth(email pattern matching only) (4/15/23)
@@ -43,17 +44,9 @@ Expect frequent improvements.
 - [x] Code syntax highlighting (3/18/23)
 - [x] Toggle sidebar (3/18/23)
 - [x] Conversation naming (3/18/23)
-- [x] Github flavored markdown (3/18/23)
+- [x] GitHub flavored markdown (3/18/23)
 - [x] Add OpenAI API key in app (3/18/23)
 - [x] Markdown support (3/17/23)
-
-## Modifications
-
-Modify the chat interface in `components/Chat`.
-
-Modify the sidebar interface in `components/Sidebar`.
-
-Modify the system prompt in `utils/server/index.ts`.
 
 ## Deploy
 
@@ -155,7 +148,25 @@ You can add a ChatGPT compatible plugin to `urls` field in `plugins.json`.
 
 ### Internal Tools
 
-You can control the tools you want to use with `internals` in `plugins.json`.
+You can control the tools you want to use with the environment variable `PLUGINS_INTERNAL`.
+
+#### Supported Internal Tools
+
+- wikipedia_search
+- google_search
+- python_interpreter
+
+#### Python Interpreter
+
+_Recommended for use with GPT-4_
+
+To enable python interpreter, you need to specify codeapi endpoint to `PYTHON_INTERPRETER_BACKEND` in `.env.local` and add `python_interpreter` to PLUGINS_INTERNAL.
+
+```bash
+# ex.
+PLUGINS_INTERNAL=wikipedia_search,google_search,python_interpreter
+PYTHON_INTERPRETER_BACKEND=http://localhost:8080/api/run
+```
 
 ## Vercel
 
