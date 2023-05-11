@@ -6,9 +6,8 @@ services:
     build: .
     ports:
       - 3000:3000
-    env_file:
-      - .env
-
+    volumes:
+      - .env:/app/.env
   mongo:
     image: mongo
     restart: always
