@@ -99,17 +99,19 @@ export const ChatMessage: FC<Props> = memo(({ message, messageIndex }) => {
     if (!selectedConversation) return;
 
     const { messages } = selectedConversation;
-    const findIndex = messages.findIndex((elm) => elm === message);
-
-    if (findIndex < 0) return;
-
-    if (
-      findIndex < messages.length - 1 &&
-      messages[findIndex + 1].role === 'assistant'
-    ) {
-      messages.splice(findIndex, 2);
+    const targetMessage = messages[messageIndex];
+    const nextMessage = messages[messageIndex + 1];
+    const valid =
+      targetMessage &&
+      message.content == targetMessage.content &&
+      targetMessage.role == message.role;
+    if (!valid) {
+      return;
+    }
+    if (nextMessage && nextMessage.role === 'assistant') {
+      messages.splice(messageIndex, 2);
     } else {
-      messages.splice(findIndex, 1);
+      messages.splice(messageIndex, 1);
     }
     const updatedConversation = {
       ...selectedConversation,
