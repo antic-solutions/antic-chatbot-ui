@@ -34,7 +34,7 @@ export const TemperatureSlider: FC<Props> = ({ onChangeTemperature }) => {
         className="cursor-pointer"
         type="range"
         min={0}
-        max={1}
+        max={2}
         step={0.1}
         value={temperature}
         onChange={handleChange}
