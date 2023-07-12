@@ -1,5 +1,3 @@
-import { OPENAI_API_TYPE } from '../utils/app/const';
-
 import * as z from 'zod';
 
 export const OpenAIModelSchema = z.object({
@@ -12,7 +10,9 @@ export type OpenAIModel = z.infer<typeof OpenAIModelSchema>;
 
 export enum OpenAIModelID {
   GPT_3_5 = 'gpt-3.5-turbo',
+  GPT_3_5_16K = 'gpt-3.5-turbo-16k',
   GPT_3_5_AZ = 'gpt-35-turbo',
+  GPT_3_5_16K_AZ = 'gpt-35-turbo-16k',
   GPT_4 = 'gpt-4',
   GPT_4_32K = 'gpt-4-32k',
 }
@@ -27,11 +27,23 @@ export const OpenAIModels: Record<OpenAIModelID, OpenAIModel> = {
     maxLength: 12000,
     tokenLimit: 4000,
   },
+  [OpenAIModelID.GPT_3_5_16K]: {
+    id: OpenAIModelID.GPT_3_5_16K,
+    name: 'GPT-3.5-16K',
+    maxLength: 48000,
+    tokenLimit: 16000,
+  },
   [OpenAIModelID.GPT_3_5_AZ]: {
     id: OpenAIModelID.GPT_3_5_AZ,
     name: 'GPT-3.5',
     maxLength: 12000,
     tokenLimit: 4000,
+  },
+  [OpenAIModelID.GPT_3_5_16K_AZ]: {
+    id: OpenAIModelID.GPT_3_5_16K_AZ,
+    name: 'GPT-3.5-16K',
+    maxLength: 48000,
+    tokenLimit: 16000,
   },
   [OpenAIModelID.GPT_4]: {
     id: OpenAIModelID.GPT_4,
