@@ -1,7 +1,7 @@
 import { Message } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
 
-import { Tiktoken } from '@dqbd/tiktoken';
+import { Tiktoken } from 'tiktoken';
 
 export const createMessagesToSend = (
   encoding: Tiktoken,

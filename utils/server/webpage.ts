@@ -1,6 +1,6 @@
 import { calcCosineSimilarity, createEmbedding } from './similarity';
 
-import { Tiktoken } from '@dqbd/tiktoken';
+import { Tiktoken } from 'tiktoken';
 import { Readability } from '@mozilla/readability';
 import jsdom, { JSDOM } from 'jsdom';
 

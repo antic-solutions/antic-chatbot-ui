@@ -8,7 +8,7 @@ import { cleanSourceText } from '@/utils/server/webpage';
 import { Message } from '@/types/chat';
 import { GoogleBody, GoogleSource } from '@/types/google';
 
-import { Tiktoken } from '@dqbd/tiktoken/lite/init';
+import { Tiktoken } from 'tiktoken/lite/init';
 import { Readability } from '@mozilla/readability';
 import endent from 'endent';
 import jsdom, { JSDOM } from 'jsdom';

@@ -9,7 +9,7 @@ import { OpenAIModel } from '@/types/openai';
 import { listAllTools } from './list';
 import { Headers } from './requests';
 
-import { Tiktoken } from '@dqbd/tiktoken';
+import { Tiktoken } from 'tiktoken';
 
 export interface TaskExecutionContext {
   taskId: string;

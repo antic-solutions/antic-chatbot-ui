@@ -2,7 +2,7 @@ import { serializeMessages } from '@/utils/server/message';
 
 import { Message } from '@/types/chat';
 
-import { Tiktoken } from '@dqbd/tiktoken';
+import { Tiktoken } from 'tiktoken';
 import chalk from 'chalk';
 import { ConsoleCallbackHandler } from 'langchain/callbacks';
 import { LLMResult } from 'langchain/dist/schema';

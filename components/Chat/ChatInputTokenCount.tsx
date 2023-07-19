@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 import HomeContext from '@/pages/api/home/home.context';
 
-import cl100k_base from '@dqbd/tiktoken/encoders/cl100k_base.json';
-import { Tiktoken } from '@dqbd/tiktoken/lite';
+import cl100k_base from 'tiktoken/encoders/cl100k_base.json';
+import { Tiktoken } from 'tiktoken/lite';
 
 export function ChatInputTokenCount(props: { content: string | undefined }) {
   const { t } = useTranslation('chat');
