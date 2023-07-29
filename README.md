@@ -6,9 +6,10 @@ This repository is highly experimental, so please do not expect compatibility wh
 
 ## [DEMO](https://smart-chatbot-ui.vercel.app/)
 
-- Do not input personal information. conversation, prompts, folders are stored in mongodb.
-- streaming response is not working in vercel environment.
-- plugins are not working for vercel timeout limitation.
+- Do not input personal information.
+- Conversation, prompts, folders are stored in mongodb.
+- Streaming response is not working in vercel environment.
+- Plugins are not working for vercel timeout limitation.
 
 ## Additional Features
 
@@ -22,8 +23,8 @@ This repository is highly experimental, so please do not expect compatibility wh
 
 ## Updates
 
-Chatbot UI will be updated over time.
-Expect frequent improvements.
+- Chatbot UI will be updated over time.
+- Expect frequent improvements.
 
 **Recent updates:**
 
@@ -106,7 +107,7 @@ docker compose -f docker-compose.dev.yml up -d
 npm run dev
 ```
 
-**6. Use It**
+**6. Use it**
 
 You should be able to start chatting.
 
