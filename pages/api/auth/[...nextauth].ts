@@ -3,6 +3,7 @@ import CognitoProvider from 'next-auth/providers/cognito';
 import Credentials from 'next-auth/providers/credentials';
 import GithubProvider from 'next-auth/providers/github';
 import GoogleProvider from 'next-auth/providers/google';
+import AzureADProvider from "next-auth/providers/azure-ad";
 
 import { getUserHashFromMail } from '@/utils/server/auth';
 
@@ -48,6 +49,15 @@ if (process.env.COGNITO_CLIENT_ID) {
       issuer: process.env.COGNITO_ISSUER,
     }),
   );
+}
+if (process.env.AZURE_AD_CLIENT_ID) {
+  providers.push(
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+    })
+  )
 }
 
 let pages: Partial<PagesOptions> = {};
