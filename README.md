@@ -130,13 +130,19 @@ When deploying the application, the following environment variables can be set:
 | MONGODB_URI                       |                                | See [Official Document](https://www.mongodb.com/docs/manual/reference/connection-string/)                                                 |
 | MONGODB_DB                        | `chatui`                       | MongoDB database name                                                                                                                     |
 | NEXTAUTH_ENABLED                  | `false`                        | Enable SSO authentication. set 'true' or 'false'                                                                                          |
-| NEXTAUTH_EMAIL_PATTERN            |                                | The email regex pattern granted access to chatbot-ui                                                                                      |
+| NEXTAUTH_EMAIL_PATTERN            |                                | The email regex pattern granted access to chatbot-ui (ex `.+@example.com`)                                                                |
 | NEXTAUTH_URL                      | `http://localhost:3000`        | NextAuth Settings. See [Official Document](https://next-auth.js.org/configuration/options)                                                |
 | NEXTAUTH_SECRET                   |                                | NextAuth Settings. See [Official Document](https://next-auth.js.org/configuration/options)                                                |
 | GITHUB_CLIENT_ID                  |                                | GitHub OAuth Client ID for NextAuth                                                                                                       |
 | GITHUB_CLIENT_SECRET              |                                | GitHub OAuth Client Secret for NextAuth                                                                                                   |
 | GOOGLE_CLIENT_ID                  |                                | Google OAuth Client ID for NextAuth                                                                                                       |
 | GOOGLE_CLIENT_SECRET              |                                | Google OAuth Client Secret for NextAuth                                                                                                   |
+| COGNITO_CLIENT_ID                 |                                | Cognito App Client ID                                                                                                                     |
+| COGNITO_CLIENT_SECRET             |                                | Cognito App Client Secret                                                                                                                 |
+| COGNITO_ISSUER                    |                                | Cognito Identity Provider Issuer                                                                                                          |
+| AZURE_AD_CLIENT_ID                |                                | Azure AD Application (client) ID (see: [Quickstart AD](https://learn.microsoft.com/en-us/azure/active-directory/develop/))                |
+| AZURE_AD_TENANT_ID                |                                | Azure AD Directory (tenant) ID                                                                                                            |
+| AZURE_AD_CLIENT_SECRET            |                                | Azure AD Client secret value (Certificates & secrets > Client Secrets > New Client Secret > Value)                                        |
 
 If you do not provide an OpenAI API key with `OPENAI_API_KEY`, users will have to provide their own key.
 If you don't have an OpenAI API key, you can get one [here](https://platform.openai.com/account/api-keys).
