@@ -28,7 +28,6 @@ export interface PluginResult {
 export interface PlanningRequest {
   taskId?: string;
   model: OpenAIModel;
-  key?: string;
   messages: Message[];
   enabledToolNames: string[];
   pluginResults: PluginResult[];
@@ -39,7 +38,6 @@ export interface RunPluginRequest {
   model: OpenAIModel;
   input: string;
   action: Action;
-  key?: string;
 }
 
 export interface ToolDefinitionApi {

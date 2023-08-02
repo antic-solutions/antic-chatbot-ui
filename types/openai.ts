@@ -2,6 +2,7 @@ import * as z from 'zod';
 
 export const OpenAIModelSchema = z.object({
   id: z.string(),
+  azureDeploymentId: z.string().optional(),
   name: z.string(),
   maxLength: z.number(), // max length of a message.
   tokenLimit: z.number(),

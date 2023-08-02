@@ -51,7 +51,6 @@ export function useAgentMode(
               apiService.planningConv(
                 {
                   taskId,
-                  key: params.body.key,
                   model: params.body.model,
                   messages: params.body.messages,
                   pluginResults: toolActionResults,
@@ -67,7 +66,6 @@ export function useAgentMode(
               apiService.planning(
                 {
                   taskId,
-                  key: params.body.key,
                   model: params.body.model,
                   messages: params.body.messages,
                   pluginResults: toolActionResults,

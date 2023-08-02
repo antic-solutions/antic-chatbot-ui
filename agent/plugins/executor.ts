@@ -15,11 +15,10 @@ export interface TaskExecutionContext {
   taskId: string;
   locale: string;
   headers: Headers;
-  model?: OpenAIModel;
+  model: OpenAIModel;
   getEncoding: () => Promise<Tiktoken>;
   withEncoding: (fn: (encoding: Tiktoken) => Promise<any>) => Promise<any>;
   verbose: boolean;
-  apiKey?: string;
 }
 
 export const createContext = (
@@ -27,7 +26,6 @@ export const createContext = (
   request: Request | NextApiRequest,
   model: OpenAIModel,
   verbose: boolean,
-  key?: string,
 ): TaskExecutionContext => {
   const headers = extractHeaders(request);
   const locale = headers['accept-language']?.split(',')[0] || 'en';
@@ -37,7 +35,6 @@ export const createContext = (
     locale,
     model,
     verbose,
-    apiKey: key || process.env.OPENAI_API_KEY,
     getEncoding: async (): Promise<Tiktoken> =>
       getTiktokenEncoding(model?.id || 'gpt-3.5-turbo'),
     withEncoding: async (

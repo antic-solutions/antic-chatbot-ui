@@ -23,7 +23,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const {
       model,
-      key,
       messages,
       enabledToolNames,
       pluginResults: toolActionResults,
@@ -36,7 +35,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const lastMessage = messages[messages.length - 1];
     const verbose = process.env.DEBUG_AGENT_LLM_LOGGING === 'true';
-    const context = createContext(taskId, req, model, verbose, key);
+    const context = createContext(taskId, req, model, verbose);
     const result = await executeNotConversationalReactAgent(
       context,
       enabledToolNames,

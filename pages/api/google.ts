@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-import { OPENAI_API_HOST } from '@/utils/app/const';
 import { ensureHasValidSession } from '@/utils/server/auth';
 import { getTiktokenEncoding } from '@/utils/server/tiktoken';
 import { cleanSourceText } from '@/utils/server/webpage';
@@ -13,6 +12,7 @@ import { Readability } from '@mozilla/readability';
 import endent from 'endent';
 import jsdom, { JSDOM } from 'jsdom';
 import path from 'node:path';
+import { getOpenAIApi } from '@/utils/server/openai';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
   // Vercel Hack
@@ -141,33 +141,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<any>) => {
     `;
 
     const answerMessage: Message = { role: 'user', content: answerPrompt };
+    const openai = getOpenAIApi(model.azureDeploymentId);
+    const answerRes = await openai.createChatCompletion({
+      model: model.id,
+      messages: [
+        {
+          role: 'system',
+          content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
+        },
+        answerMessage,
+      ],
+      max_tokens: 1000,
+      temperature: 1,
+      stream: false,
+    })
 
-    const answerRes = await fetch(`${OPENAI_API_HOST}/v1/chat/completions`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`,
-        ...(process.env.OPENAI_ORGANIZATION && {
-          'OpenAI-Organization': process.env.OPENAI_ORGANIZATION,
-        }),
-      },
-      method: 'POST',
-      body: JSON.stringify({
-        model: model.id,
-        messages: [
-          {
-            role: 'system',
-            content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
-          },
-          answerMessage,
-        ],
-        max_tokens: 1000,
-        temperature: 1,
-        stream: false,
-      }),
-    });
-
-    const { choices: choices2 } = await answerRes.json();
-    const answer = choices2[0].message.content;
+    const { choices: choices2 } = await answerRes.data;
+    const answer = choices2[0].message!.content;
 
     res.status(200).json({ answer });
   } catch (error) {

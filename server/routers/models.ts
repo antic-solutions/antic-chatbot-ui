@@ -61,12 +61,12 @@ export const models = router({
 
       const models: OpenAIModel[] = json.data
         .map((model: any) => {
-          const model_name =
-            OPENAI_API_TYPE === 'azure' ? model.model : model.id;
           for (const [key, value] of Object.entries(OpenAIModelID)) {
-            if (value === model_name) {
+            const modelId = OPENAI_API_TYPE === 'azure' ? model.model : model.id;
+            if (value === modelId) {
               const r: OpenAIModel = {
-                id: model.id,
+                id: modelId,
+                azureDeploymentId: OPENAI_API_TYPE === 'azure' ? model.id : undefined,
                 name: OpenAIModels[value].name,
                 maxLength: OpenAIModels[value].maxLength,
                 tokenLimit: OpenAIModels[value].tokenLimit,

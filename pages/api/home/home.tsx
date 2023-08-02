@@ -49,7 +49,7 @@ const Home = ({
   });
 
   const {
-    state: { apiKey, settings, conversations, selectedConversation, prompts },
+    state: { apiKey, settings, conversations, selectedConversation, prompts, models },
     dispatch,
   } = contextValue;
 
@@ -143,21 +143,19 @@ const Home = ({
         cleanedConversationHistory.length > 0
           ? cleanedConversationHistory[0]
           : undefined;
-      if (conversation) {
-        console.log('conversations found', conversation);
+      if (conversation && !selectedConversation) {
         dispatch({
           field: 'selectedConversation',
           value: conversation,
         });
-      } else {
-        console.log('no conversations found, creating new one');
+      } else if (!conversation) {
         dispatch({
           field: 'selectedConversation',
           value: {
             id: uuidv4(),
             name: t('New Conversation'),
             messages: [],
-            model: OpenAIModels[defaultModelId],
+            model: models.find(m=>m.id == defaultModelId),
             prompt: DEFAULT_SYSTEM_PROMPT,
             temperature: settings.defaultTemperature,
             folderId: null,
@@ -171,6 +169,7 @@ const Home = ({
     settings.defaultTemperature,
     t,
     defaultModelId,
+    models
   ]);
 
   useEffect(() => {

@@ -14,6 +14,7 @@ import { TaskExecutionContext } from './executor';
 
 import chalk from 'chalk';
 import endent from 'endent';
+import { getOpenAIApi } from '@/utils/server/openai';
 
 export default {
   nameForModel: 'google_search',
@@ -64,8 +65,7 @@ export default {
             encoding,
             query,
             text,
-            500,
-            context.apiKey,
+            500
           );
           if (sortedChunks.length === 0) {
             return null;
@@ -125,36 +125,23 @@ export default {
     }
 
     const answerMessage: Message = { role: 'user', content: answerPrompt };
-    const modelId = context.model?.id ?? 'gpt-3.5-turbo';
-    const answerRes = await fetch(`${OPENAI_API_HOST}/v1/chat/completions`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        ...(process.env.OPENAI_ORGANIZATION && {
-          'OpenAI-Organization': process.env.OPENAI_ORGANIZATION,
-        }),
-      },
-      method: 'POST',
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          {
-            role: 'system',
-            content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
-          },
-          answerMessage,
-        ],
-        max_tokens: 1000,
-        temperature: 0,
-        stream: false,
-      }),
-    });
+    const model = context.model;
+    const openai = getOpenAIApi(model.azureDeploymentId)
+    const answerRes = await openai.createChatCompletion({
+      model: model.id,
+      messages: [
+        {
+          role: 'system',
+          content: `Use the sources to provide an accurate response. Respond in markdown format. Cite the sources you used as [1](link), etc, as you use them. Maximum 4 sentences.`,
+        },
+        answerMessage,
+      ],
+      max_tokens: 1000,
+      temperature: 0,
+      stream: false,
+    })
 
-    const json = await answerRes.json();
-    if (json.error) {
-      throw new Error(json.error);
-    }
-    const answer = json.choices[0].message.content;
+    const answer = answerRes.data.choices[0].message!.content!;
     encoding.free();
 
     if (context.verbose) {

@@ -13,7 +13,8 @@ import prompts from './prompts/agentConvo';
 import chalk from 'chalk';
 import { CallbackManager } from 'langchain/callbacks';
 import { PromptTemplate } from 'langchain/prompts';
-import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from 'openai';
+import { ChatCompletionRequestMessage } from 'openai';
+import { getOpenAIApi } from '@/utils/server/openai';
 
 const setupCallbackManager = (verbose: boolean): void => {
   const callbackManager = new CallbackManager();
@@ -167,8 +168,9 @@ export const executeReactAgent = async (
 ): Promise<ReactAgentResult> => {
   setupCallbackManager(verbose);
   const tools = await listToolsBySpecifiedPlugins(context, enabledToolNames);
-  const modelId = context.model?.id || 'gpt-3.5-turbo';
-  const openai = new OpenAIApi(new Configuration({ apiKey: context.apiKey }));
+  const modelId = context.model.id;
+  const openai = getOpenAIApi(context.model.azureDeploymentId);
+
   const messages = await createMessages(
     context,
     tools,
