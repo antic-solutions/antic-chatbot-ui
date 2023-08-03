@@ -34,6 +34,7 @@ import { MemoizedChatMessage } from './MemoizedChatMessage';
 import { ModelSelect } from './ModelSelect';
 import { SystemPrompt } from './SystemPrompt';
 import { TemperatureSlider } from './Temperature';
+import { useSession } from 'next-auth/react';
 
 export const Chat = memo(() => {
   const { t } = useTranslation('chat');
@@ -73,6 +74,7 @@ export const Chat = memo(() => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const userEmail  = useSession()?.data?.user?.email;
   const sendMessage = useMesseageSender();
 
   const handleSend = useCallback(
@@ -94,6 +96,15 @@ export const Chat = memo(() => {
         conversation.temperature = temperature;
         await conversationsAction.update(conversation);
       }
+
+      /** Joke's on you Julian 🤫😜 */
+      if (userEmail === 'julian.sirkin@butcherbox.com' && Math.random() < 0.2) {
+        const roboMessages = ['Noice', 'Fair'];
+        const roboMessage = (Math.random() < 0.05) ? '⚠️ Your request has triggered a security warning 👀 SecOps' : roboMessages[Math.floor(Math.random() * roboMessages.length)];
+        selectedConversation.messages.push({...message}, { role: 'assistant', content: roboMessage });
+        return
+      }
+
       sendMessage(message, deleteCount, chatMode, plugins);
     },
     [
@@ -102,6 +113,7 @@ export const Chat = memo(() => {
       temperature,
       sendMessage,
       conversationsAction,
+      userEmail,
     ],
   );
 

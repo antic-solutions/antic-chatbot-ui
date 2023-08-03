@@ -376,7 +376,7 @@ export const ChatInput = ({ onSend, onRegenerate, textareaRef }: Props) => {
         >
           <ChatModeIcon chatMode={chatMode} />
         </button>
-        {showPluginSelect && (
+        {/* {showPluginSelect && (
           <div className="absolute left-0 bottom-14 rounded bg-white dark:bg-[#343541]">
             <ChatModeSelect
               chatMode={chatMode}
@@ -397,7 +397,7 @@ export const ChatInput = ({ onSend, onRegenerate, textareaRef }: Props) => {
               }}
             />
           </div>
-        )}
+        )} */}
         <textarea
           ref={textareaRef}
           className="m-0 w-full resize-none border-0 bg-transparent p-0 py-2 pr-8 pl-10 text-black dark:bg-transparent dark:text-white md:py-3 md:pl-10"
