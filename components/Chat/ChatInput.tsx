@@ -463,16 +463,16 @@ export const ChatInput = ({ onSend, onRegenerate, textareaRef }: Props) => {
       </ChatInputContainer>
       <div className="px-3 pt-2 pb-3 text-center text-[12px] text-black/50 dark:text-white/50 md:px-4 md:pt-3 md:pb-6">
         <a
-          href="https://github.com/dotneet/smart-chatbot-ui"
+          href="https://teams.microsoft.com/l/chat/0/0?users=tyler@butcherbox.com&topicName=ButcherboxGPT&message=Hey Tyler, I've got a question about ButcherboxGPT... "
           target="_blank"
           rel="noreferrer"
           className="underline"
         >
-          Smart ChatBot UI
+          Got a Question?
         </a>
-        .{' '}
+        {' '}
         {t(
-          "Smart Chatbot UI is an advanced chatbot kit for OpenAI's chat models aiming to mimic ChatGPT's interface and functionality.",
+          "ButcherboxGPT a secure chatbot built on Microsoft Azure functionality leveraging Open Source Technology. ",
         )}
       </div>
     </div>
