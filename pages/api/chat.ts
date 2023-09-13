@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth';
 
 import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
 import { OpenAIStream } from '@/utils/server';
@@ -8,7 +9,12 @@ import { getTiktokenEncoding } from '@/utils/server/tiktoken';
 
 import { ChatBodySchema } from '@/types/chat';
 
+import { authOptions } from '@/pages/api/auth/[...nextauth]';
+
 import path from 'node:path';
+import loggerFn from 'pino';
+
+const logger = loggerFn({ name: 'chat' });
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   // Vercel Hack
@@ -18,6 +24,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   if (!(await ensureHasValidSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const session = await getServerSession(req, res, authOptions);
+  if (session && process.env.AUDIT_LOG_ENABLED === 'true') {
+    logger.info({ event: 'chat', user: session.user });
   }
 
   const { model, messages, key, prompt, temperature } = ChatBodySchema.parse(

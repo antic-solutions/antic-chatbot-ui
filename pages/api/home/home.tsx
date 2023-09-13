@@ -8,7 +8,7 @@ import Head from 'next/head';
 import { useCreateReducer } from '@/hooks/useCreateReducer';
 
 import { cleanConversationHistory } from '@/utils/app/clean';
-import { DEFAULT_SYSTEM_PROMPT } from '@/utils/app/const';
+import { DEFAULT_SYSTEM_PROMPT, PROMPT_SHARING_ENABLED } from '@/utils/app/const';
 import { trpc } from '@/utils/trpc';
 
 import { Conversation } from '@/types/chat';
@@ -25,12 +25,14 @@ interface Props {
   serverSideApiKeyIsSet: boolean;
   serverSidePluginKeysSet: boolean;
   defaultModelId: OpenAIModelID;
+  promptSharingEnabled: boolean
 }
 
 const Home = ({
   serverSideApiKeyIsSet,
   serverSidePluginKeysSet,
   defaultModelId,
+  promptSharingEnabled
 }: Props) => {
   const { t } = useTranslation('chat');
   const settingsQuery = trpc.settings.get.useQuery();
@@ -39,12 +41,15 @@ const Home = ({
   const conversationsQuery = trpc.conversations.list.useQuery(undefined, {
     enabled: false,
   });
+  const publicPromptsQuery = trpc.publicPrompts.list.useQuery();
+  const publicFoldersQuery = trpc.publicFolders.list.useQuery();
 
   const stopConversationRef = useRef<boolean>(false);
   const contextValue = useCreateReducer<HomeInitialState>({
     initialState: {
       ...initialState,
       stopConversationRef: stopConversationRef,
+      promptSharingEnabled: promptSharingEnabled
     } as HomeInitialState,
   });
 
@@ -129,6 +134,18 @@ const Home = ({
       dispatch({ field: 'folders', value: foldersQuery.data });
     }
   }, [dispatch, foldersQuery.data]);
+
+  useEffect(() => {
+    if (promptSharingEnabled && publicPromptsQuery.data) {
+      dispatch({ field: 'publicPrompts', value: publicPromptsQuery.data });
+    }
+  }, [dispatch, publicPromptsQuery.data, promptSharingEnabled]);
+
+  useEffect(() => {
+    if (promptSharingEnabled && publicFoldersQuery.data) {
+      dispatch({ field: 'publicFolders', value: publicFoldersQuery.data });
+    }
+  }, [dispatch, publicFoldersQuery.data, promptSharingEnabled]);
 
   useEffect(() => {
     if (conversationsQuery.data) {
@@ -267,6 +284,7 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
         'promptbar',
         'settings',
       ])),
+      promptSharingEnabled: PROMPT_SHARING_ENABLED
     },
   };
 };
